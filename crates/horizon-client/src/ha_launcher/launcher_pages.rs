@@ -524,7 +524,7 @@ fn toggle(
         x,
         y + (h - 20.0) * 0.5,
         if on { my3_accent() } else { my3_muted() },
-        if on { &horizon_client::lang::get_or("Enabled", "Enabled") } else { &horizon_client::lang::get_or("Off", "Off") },
+        if on { horizon_client::lang::get_or("Enabled", "Enabled") } else { horizon_client::lang::get_or("Off", "Off") },
     );
     let track_x = x + w - 52.0;
     let track_y = y + (h - 26.0) * 0.5;
@@ -2744,12 +2744,12 @@ impl Launcher {
         let paste_label = if clip_count > 0 {
             format!("Paste ({clip_count})")
         } else {
-            &horizon_client::lang::get_or("Paste", "Paste").into()
+            horizon_client::lang::get_or("Paste", "Paste").into()
         };
         let del_label = if sel_count > 0 {
             format!("Delete ({sel_count})")
         } else {
-            &horizon_client::lang::get_or("Delete", "Delete").into()
+            horizon_client::lang::get_or("Delete", "Delete").into()
         };
         let tools: [(&str, Action, bool); 8] = [
             (&horizon_client::lang::get_or("All", "All"), Action::FmSelectAll, false),
@@ -3276,7 +3276,7 @@ impl Launcher {
             let version = modal
                 .versions
                 .get(modal.selected_version)
-                .map_or_else(|| &horizon_client::lang::get_or("Latest", "Latest").to_owned(), |v| v.number.clone());
+                .map_or_else(|| horizon_client::lang::get_or("Latest", "Latest").to_owned(), |v| v.number.clone());
             if let Some(bundled) = modal.bundled_id {
                 if self.catalog.bundled_enabled.contains(bundled) {
                     &horizon_client::lang::get_or("Installed (Tap to Disable)", "Installed (Tap to Disable)").to_owned()
@@ -3374,7 +3374,7 @@ impl Launcher {
             meta_parts.push(modal.license.clone());
         }
         if modal.loading {
-            meta_parts.push(&horizon_client::lang::get_or("Syncing Modrinth details...", "Syncing Modrinth details...").into());
+            meta_parts.push(horizon_client::lang::get_or("Syncing Modrinth details...", "Syncing Modrinth details...").into());
         }
         let meta_line = meta_parts.join("  •  ");
         let fitted_meta = ui.fit_text(Face::Regular, 12.5, &meta_line, title_max);
@@ -3725,7 +3725,7 @@ impl Launcher {
             .ok()
             .map(|e| crate::ha_launcher::diagnostics::redact(&e))
             .unwrap_or_else(|| {
-                &horizon_client::lang::get_or("None — last session exited cleanly with zero unhandled errors.", "None — last session exited cleanly with zero unhandled errors.").into()
+                horizon_client::lang::get_or("None — last session exited cleanly with zero unhandled errors.", "None — last session exited cleanly with zero unhandled errors.").into()
             });
 
         ui.text(
@@ -5498,7 +5498,7 @@ impl Launcher {
                 self.install_cancelled.store(true, Ordering::Relaxed);
                 self.install_paused.store(false, Ordering::Relaxed);
                 self.worker = None;
-                self.catalog.status = &horizon_client::lang::get_or("Game preparation cancelled.", "Game preparation cancelled.").into();
+                self.catalog.status = horizon_client::lang::get_or("Game preparation cancelled.", "Game preparation cancelled.").into();
             }
             Some(Action::PauseCatalogDownload) => {
                 self.catalog.toggle_pause();
@@ -5532,12 +5532,12 @@ impl Launcher {
                         slug: (*id).to_owned(),
                         title: (*title).to_owned(),
                         summary: (*desc).to_owned(),
-                        author: &horizon_client::lang::get_or("Horizon Built-in", "Horizon Built-in").into(),
+                        author: horizon_client::lang::get_or("Horizon Built-in", "Horizon Built-in").into(),
                         downloads: 0,
                         icon: None,
                         page: String::new(),
                         kind: crate::ha_launcher::browser::Kind::Mod,
-                        license: &horizon_client::lang::get_or("MIT / Apache-2.0", "MIT / Apache-2.0").into(),
+                        license: horizon_client::lang::get_or("MIT / Apache-2.0", "MIT / Apache-2.0").into(),
                         game_versions: vec![crate::ha_launcher::browser::GAME.into()],
                         loaders: vec!["horizon".into()],
                     };
@@ -5978,7 +5978,7 @@ impl Launcher {
                 self.catalog.config.cache_budget_mib = mib.min(1024);
                 self.catalog.config.save(&self.home)?;
                 self.chooser = None;
-                self.catalog.status = &horizon_client::lang::get_or("Disposable cache budget saved. Applies on next Play; not a total RAM or VRAM limit.", "Disposable cache budget saved. Applies on next Play; not a total RAM or VRAM limit.").into();
+                self.catalog.status = horizon_client::lang::get_or("Disposable cache budget saved. Applies on next Play; not a total RAM or VRAM limit.", "Disposable cache budget saved. Applies on next Play; not a total RAM or VRAM limit.").into();
             }
             Some(Action::ToggleBundled(id)) => {
                 self.toggle_bundled_mod(id)?;
@@ -6002,7 +6002,7 @@ impl Launcher {
                 self.catalog.config.worker_limit = limit.min(64);
                 self.catalog.config.save(&self.home)?;
                 self.chooser = None;
-                self.catalog.status = &horizon_client::lang::get_or("Chunk worker ceiling saved. Applies on the next Play; other engine threads are unchanged.", "Chunk worker ceiling saved. Applies on the next Play; other engine threads are unchanged.").into();
+                self.catalog.status = horizon_client::lang::get_or("Chunk worker ceiling saved. Applies on the next Play; other engine threads are unchanged.", "Chunk worker ceiling saved. Applies on the next Play; other engine threads are unchanged.").into();
             }
             Some(Action::DisplayHz) => self.open_chooser(chooser::Kind::DisplayHz),
             Some(Action::ChooseDisplayHz(hz)) => {
@@ -6014,13 +6014,13 @@ impl Launcher {
             }
             Some(Action::PerformanceHints) => {
                 self.catalog.config.device.performance_hints ^= true;
-                self.catalog.status=&horizon_client::lang::get_or("ADPF gives Android CPU frame-work hints on supported devices. It does not cap FPS or guarantee a speedup.", "ADPF gives Android CPU frame-work hints on supported devices. It does not cap FPS or guarantee a speedup.").into();
+                self.catalog.status=horizon_client::lang::get_or("ADPF gives Android CPU frame-work hints on supported devices. It does not cap FPS or guarantee a speedup.", "ADPF gives Android CPU frame-work hints on supported devices. It does not cap FPS or guarantee a speedup.").into();
                 self.catalog.config.save(&self.home)?;
                 crate::ha_launcher::device_runtime::configure(self.catalog.config.device);
             }
             Some(Action::GpuProfile) => {
                 self.catalog.config.device.gpu_profile ^= true;
-                self.catalog.status=&horizon_client::lang::get_or("Detailed GPU profiling records diagnostics and has overhead. Reports remain on this device.", "Detailed GPU profiling records diagnostics and has overhead. Reports remain on this device.").into();
+                self.catalog.status=horizon_client::lang::get_or("Detailed GPU profiling records diagnostics and has overhead. Reports remain on this device.", "Detailed GPU profiling records diagnostics and has overhead. Reports remain on this device.").into();
                 self.catalog.config.save(&self.home)?;
                 crate::ha_launcher::device_runtime::configure(self.catalog.config.device);
             }
@@ -6049,9 +6049,9 @@ impl Launcher {
                     folder,
                 );
                 self.catalog.status = if crate::ha_launcher::platform::open_documents(&id) {
-                    &horizon_client::lang::get_or("Opened in Files. Return here after copying files.", "Opened in Files. Return here after copying files.").into()
+                    horizon_client::lang::get_or("Opened in Files. Return here after copying files.", "Opened in Files. Return here after copying files.").into()
                 } else {
-                    &horizon_client::lang::get_or("Open the system Files app and choose Starling.", "Open the system Files app and choose Starling.").into()
+                    horizon_client::lang::get_or("Open the system Files app and choose Starling.", "Open the system Files app and choose Starling.").into()
                 };
             }
             Some(Action::Import(kind)) => {
@@ -6394,9 +6394,9 @@ impl Launcher {
             Some(Action::OpenReportsFolder) => {
                 self.diagnostics_modal_open = false;
                 self.catalog.status = if crate::ha_launcher::platform::open_documents("reports") {
-                    &horizon_client::lang::get_or("Opened Reports folder in system Files.", "Opened Reports folder in system Files.").into()
+                    horizon_client::lang::get_or("Opened Reports folder in system Files.", "Opened Reports folder in system Files.").into()
                 } else {
-                    &horizon_client::lang::get_or("Reports are saved in Starling's diagnostics.", "Reports are saved in Starling's diagnostics.").into()
+                    horizon_client::lang::get_or("Reports are saved in Starling's diagnostics.", "Reports are saved in Starling's diagnostics.").into()
                 };
             }
             Some(Action::ToggleOpenDirectly) => {
@@ -6408,7 +6408,7 @@ impl Launcher {
                         self.catalog.config.profile + 1
                     )
                 } else {
-                    &horizon_client::lang::get_or("Starling opens in the launcher.", "Starling opens in the launcher.").into()
+                    horizon_client::lang::get_or("Starling opens in the launcher.", "Starling opens in the launcher.").into()
                 };
             }
             Some(Action::ToggleLauncherAnimations) => {
@@ -6444,7 +6444,7 @@ impl Launcher {
                 let (sender, receiver) = mpsc::channel();
                 self.diagnostic_export = Some(receiver);
                 self.catalog.status =
-                    &horizon_client::lang::get_or("Preparing local diagnostic ZIP. No upload; review before sharing.", "Preparing local diagnostic ZIP. No upload; review before sharing.").into();
+                    horizon_client::lang::get_or("Preparing local diagnostic ZIP. No upload; review before sharing.", "Preparing local diagnostic ZIP. No upload; review before sharing.").into();
                 std::thread::spawn(move || {
                     let result = crate::ha_launcher::diagnostics::export(&home).map(|p| {
                         p.file_name()
@@ -6468,7 +6468,7 @@ impl Launcher {
             }
             Some(Action::ExportPerformance) => {
                 self.catalog.status = match crate::ha_launcher::performance::export(&self.home) {
-                    Ok(()) => &horizon_client::lang::get_or("Reports opened in Files. Copy or share a report from there.", "Reports opened in Files. Copy or share a report from there.").into(),
+                    Ok(()) => horizon_client::lang::get_or("Reports opened in Files. Copy or share a report from there.", "Reports opened in Files. Copy or share a report from there.").into(),
                     Err(e) => e,
                 };
             }
@@ -6610,7 +6610,7 @@ impl Launcher {
                 );
                 self.anim.trigger_theme_pulse();
                 self.catalog.config.save(&self.home)?;
-                self.catalog.status = &horizon_client::lang::get_or("Theme reset to Horizon default (Obsidian Violet).", "Theme reset to Horizon default (Obsidian Violet).").into();
+                self.catalog.status = horizon_client::lang::get_or("Theme reset to Horizon default (Obsidian Violet).", "Theme reset to Horizon default (Obsidian Violet).").into();
             }
             Some(Action::SkipIntro) => {
                 self.anim.intro_done = true;
@@ -6741,7 +6741,7 @@ impl Launcher {
                 }
             }
             Some(Action::FmOpenNewFolder) => {
-                self.catalog.fm_input_text = &horizon_client::lang::get_or("New Folder", "New Folder").into();
+                self.catalog.fm_input_text = horizon_client::lang::get_or("New Folder", "New Folder").into();
                 self.catalog.fm_modal = Some(crate::ha_launcher::catalog::FmModal::NewFolder);
                 self.catalog.editing = Some("fm_new_folder");
                 crate::ha_launcher::platform::show(&self.catalog.fm_input_text);
@@ -6754,7 +6754,7 @@ impl Launcher {
                     if crate::ha_launcher::document_store::is_protected_root_folder(&entry.rel_path)
                     {
                         self.catalog.status =
-                            &horizon_client::lang::get_or("Built-in profile root folders cannot be renamed.", "Built-in profile root folders cannot be renamed.").into();
+                            horizon_client::lang::get_or("Built-in profile root folders cannot be renamed.", "Built-in profile root folders cannot be renamed.").into();
                     } else {
                         self.catalog.fm_input_text = entry.name;
                         self.catalog.fm_modal =
@@ -6770,7 +6770,7 @@ impl Launcher {
                 if let Some(rel) = self.catalog.fm_selected.iter().next().cloned() {
                     if crate::ha_launcher::document_store::is_protected_root_folder(&rel) {
                         self.catalog.status =
-                            &horizon_client::lang::get_or("Built-in profile root folders cannot be renamed.", "Built-in profile root folders cannot be renamed.").into();
+                            horizon_client::lang::get_or("Built-in profile root folders cannot be renamed.", "Built-in profile root folders cannot be renamed.").into();
                     } else {
                         let cur_name = rel.rsplit_once('/').map_or(rel.as_str(), |(_, n)| n);
                         self.catalog.fm_input_text = cur_name.to_owned();
@@ -6780,7 +6780,7 @@ impl Launcher {
                         crate::ha_launcher::platform::show(&self.catalog.fm_input_text);
                     }
                 } else {
-                    self.catalog.status = &horizon_client::lang::get_or("Select a single file or folder to rename.", "Select a single file or folder to rename.").into();
+                    self.catalog.status = horizon_client::lang::get_or("Select a single file or folder to rename.", "Select a single file or folder to rename.").into();
                 }
             }
             Some(Action::FmSubmitRename) => {
@@ -6791,7 +6791,7 @@ impl Launcher {
                     if crate::ha_launcher::document_store::is_protected_root_folder(&entry.rel_path)
                     {
                         self.catalog.status =
-                            &horizon_client::lang::get_or("Built-in profile root folders cannot be deleted.", "Built-in profile root folders cannot be deleted.").into();
+                            horizon_client::lang::get_or("Built-in profile root folders cannot be deleted.", "Built-in profile root folders cannot be deleted.").into();
                     } else {
                         self.catalog.fm_modal =
                             Some(crate::ha_launcher::catalog::FmModal::ConfirmDelete {
@@ -6802,7 +6802,7 @@ impl Launcher {
             }
             Some(Action::FmRequestDeleteSelected) => {
                 if self.catalog.fm_selected.is_empty() {
-                    self.catalog.status = &horizon_client::lang::get_or("Select one or more items to delete.", "Select one or more items to delete.").into();
+                    self.catalog.status = horizon_client::lang::get_or("Select one or more items to delete.", "Select one or more items to delete.").into();
                 } else {
                     let paths: Vec<String> = self
                         .catalog
@@ -6815,7 +6815,7 @@ impl Launcher {
                         .collect();
                     if paths.is_empty() {
                         self.catalog.status =
-                            &horizon_client::lang::get_or("Built-in profile root folders cannot be deleted.", "Built-in profile root folders cannot be deleted.").into();
+                            horizon_client::lang::get_or("Built-in profile root folders cannot be deleted.", "Built-in profile root folders cannot be deleted.").into();
                     } else {
                         self.catalog.fm_modal =
                             Some(crate::ha_launcher::catalog::FmModal::ConfirmDelete { paths });
@@ -6882,7 +6882,7 @@ impl Launcher {
                         Err(e) => self.catalog.status = e,
                     }
                 } else {
-                    self.catalog.status = &horizon_client::lang::get_or("Select a file to export.", "Select a file to export.").into();
+                    self.catalog.status = horizon_client::lang::get_or("Select a file to export.", "Select a file to export.").into();
                 }
             }
             Some(Action::FmCloseModal) => {
@@ -7225,7 +7225,7 @@ fn wrap_text_lines(ui: &Ui, face: Face, size: f32, text: &str, max_w: f32) -> Ve
         }
     }
     if lines.is_empty() {
-        lines.push(&horizon_client::lang::get_or("No additional description available.", "No additional description available.").into());
+        lines.push(horizon_client::lang::get_or("No additional description available.", "No additional description available.").into());
     }
     lines
 }
