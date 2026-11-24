@@ -176,39 +176,32 @@ jobs:
           path: packaging/android/wasm-probe/target/horizon-mod/*.hmod
           if-no-files-found: error
 
+  # Fork delivery: the upstream release job only runs on starling-client/starling at a v* tag.
+  # On this fork we instead publish every APK the matrix just built as assets of a public
+  # release, so they can be downloaded straight from the browser without signing in.
   release:
-    # Publish once, only after every architecture has built and signed successfully.
     needs: apk
-    if: github.repository == 'starling-client/starling' && startsWith(github.ref, 'refs/tags/v')
+    if: github.repository != 'starling-client/starling'
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      actions: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: v0.9.0-chinese
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - name: Download the APK artifacts
+        uses: actions/download-artifact@v4
         with:
           pattern: starling-apk-*
           path: target/android
           merge-multiple: true
-      - name: Check all release APKs and build shared visuals
+      - name: Publish the APKs as a public release
         run: |
-          python3 packaging/android/release_assets.py --version "$GITHUB_REF_NAME"
-      # The latest release is what the game's update prompt offers (game/update_offer.rs): the APK
-      # it installs, Starling Visuals beside it, and the notes written for it.
-      - name: Publish the release
-        if: env.RELEASE_BUILD == 'true' && startsWith(github.ref, 'refs/tags/v')
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create "$GITHUB_REF_NAME" target/android/starling-*.apk \
-            target/android/StarlingVisuals.zip \
-            --title "Starling $GITHUB_REF_NAME" --notes-file packaging/android/release-notes.md \
+          ls -l target/android
+          gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null || true
+          gh release create "$TAG" target/android/starling-*.apk \
+            --title "Starling 0.9.0 中文版（BMCLAPI 加速下载 + 中文界面）" \
+            --notes "自动构建：中文界面 + BMCLAPI 多线程下载加速。arm64-v8a 为大多数现代手机使用。" \
             --latest
-      # The release's game with the sets of native-mods/prebuilt.txt (a release made with this token
-      # starts no other workflow by itself; a dispatch does).
-      - name: Build its native mods
-        if: env.RELEASE_BUILD == 'true' && startsWith(github.ref, 'refs/tags/v')
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh workflow run native-mods.yml -R "$GITHUB_REPOSITORY" --ref starling -f version="${GITHUB_REF_NAME#v}"
