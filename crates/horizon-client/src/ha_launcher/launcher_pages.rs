@@ -1324,7 +1324,7 @@ impl Launcher {
             let total_mib = f64::from(self.catalog.downloading_size_mib.max(1.0));
             let done_mib = (total_mib * f64::from(frac)).clamp(0.0, total_mib);
             let title = if self.catalog.downloading_title.is_empty() {
-                &horizon_client::lang::get_or("Downloading add-on...", "Downloading add-on...").to_owned()
+                horizon_client::lang::get_or("Downloading add-on...", "Downloading add-on...").to_owned()
             } else {
                 format!("Installing {}", self.catalog.downloading_title)
             };
@@ -3002,7 +3002,7 @@ impl Launcher {
                 ui.border(mx, my, mw, mh, 20.0, my3_border());
                 ui.icon(Icon::Trash, mx + 20.0, my + 20.0, 22.0, my3_accent());
                 let title = if paths.len() == 1 {
-                    &horizon_client::lang::get_or("Delete selected item?", "Delete selected item?").to_owned()
+                    horizon_client::lang::get_or("Delete selected item?", "Delete selected item?").to_owned()
                 } else {
                     format!("Delete {} selected items?", paths.len())
                 };
@@ -3279,12 +3279,12 @@ impl Launcher {
                 .map_or_else(|| horizon_client::lang::get_or("Latest", "Latest").to_owned(), |v| v.number.clone());
             if let Some(bundled) = modal.bundled_id {
                 if self.catalog.bundled_enabled.contains(bundled) {
-                    &horizon_client::lang::get_or("Installed (Tap to Disable)", "Installed (Tap to Disable)").to_owned()
+                    horizon_client::lang::get_or("Installed (Tap to Disable)", "Installed (Tap to Disable)").to_owned()
                 } else {
                     format!("Enable Built-in ({version})")
                 }
             } else if crate::ha_launcher::catalog::native_unsupported(&modal.project) {
-                &horizon_client::lang::get_or("Native .hnmod temporarily unsupported on Android", "Native .hnmod temporarily unsupported on Android").to_owned()
+                horizon_client::lang::get_or("Native .hnmod temporarily unsupported on Android", "Native .hnmod temporarily unsupported on Android").to_owned()
             } else if let Some(state) = self.catalog.download_label(&modal.project) {
                 state
             } else {
@@ -3982,7 +3982,7 @@ impl Launcher {
                 let fov_frac = ((opts.fov - 30.0) / 80.0).clamp(0.0, 1.0);
                 let preset_str = format!("{} ›", capitalize(&opts.graphics_preset));
                 let fps_str = if opts.max_fps >= 260 {
-                    &horizon_client::lang::get_or("Unlimited ›", "Unlimited ›").to_owned()
+                    horizon_client::lang::get_or("Unlimited ›", "Unlimited ›").to_owned()
                 } else {
                     format!("{} FPS ›", opts.max_fps)
                 };
@@ -4152,17 +4152,17 @@ impl Launcher {
                 let profile_str = format!("Profile {} v", c.profile + 1);
                 let input_str = format!("{} v", c.input_host.label());
                 let worker_str = if c.worker_limit == 0 {
-                    &horizon_client::lang::get_or("Auto (Big.LITTLE Safe) v", "Auto (Big.LITTLE Safe) v").to_owned()
+                    horizon_client::lang::get_or("Auto (Big.LITTLE Safe) v", "Auto (Big.LITTLE Safe) v").to_owned()
                 } else {
                     format!("{} threads v", c.worker_limit)
                 };
                 let cache_str = if c.cache_budget_mib == 0 {
-                    &horizon_client::lang::get_or("Default (80 MiB) v", "Default (80 MiB) v").to_owned()
+                    horizon_client::lang::get_or("Default (80 MiB) v", "Default (80 MiB) v").to_owned()
                 } else {
                     format!("{} MiB v", c.cache_budget_mib)
                 };
                 let server_str = if c.server.is_empty() {
-                    &horizon_client::lang::get_or("Singleplayer / Tap to set", "Singleplayer / Tap to set").to_owned()
+                    horizon_client::lang::get_or("Singleplayer / Tap to set", "Singleplayer / Tap to set").to_owned()
                 } else {
                     c.server.clone()
                 };

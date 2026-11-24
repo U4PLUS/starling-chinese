@@ -1424,8 +1424,10 @@ impl<'a> Ui<'a> {
         width
     }
     /// Text in a `1.45 × size` line box whose top is `y`.
-    pub fn text(&mut self, face: Face, size: f32, x: f32, y: f32, color: u32, text: &str) -> f32 {
-        self.text_line(face, size, (size * 1.45).round(), x, y, color, text)
+    /// Accepts anything string-like (`&str`, `String`, `&String`) so callers can hand it a
+    /// translated string owned by the call (`lang::get_or`) or a plain literal alike.
+    pub fn text(&mut self, face: Face, size: f32, x: f32, y: f32, color: u32, text: impl AsRef<str>) -> f32 {
+        self.text_line(face, size, (size * 1.45).round(), x, y, color, text.as_ref())
     }
     pub(crate) fn text_centered(
         &mut self,
@@ -1434,8 +1436,9 @@ impl<'a> Ui<'a> {
         cx: f32,
         y: f32,
         color: u32,
-        text: &str,
+        text: impl AsRef<str>,
     ) {
+        let text = text.as_ref();
         let w = self.measure(face, size, text);
         self.text(face, size, cx - w / 2.0, y, color, text);
     }
