@@ -2228,9 +2228,9 @@ impl Launcher {
             header_y + 2.0,
             my3_text(),
             if self.catalog.installed_sub_tab == InstalledSubTab::Library {
-                &horizon_client::lang::get_or("Content Library", "Content Library")
+                horizon_client::lang::get_or("Content Library", "Content Library")
             } else {
-                &horizon_client::lang::get_or("Profile File Manager", "Profile File Manager")
+                horizon_client::lang::get_or("Profile File Manager", "Profile File Manager")
             },
         );
 
@@ -2385,9 +2385,9 @@ impl Launcher {
                     top + 18.0,
                     my3_text(),
                     if self.catalog.local.is_empty() {
-                        &horizon_client::lang::get_or("No local add-ons installed yet", "No local add-ons installed yet")
+                        horizon_client::lang::get_or("No local add-ons installed yet", "No local add-ons installed yet")
                     } else {
-                        &horizon_client::lang::get_or("No installed add-ons match your filter", "No installed add-ons match your filter")
+                        horizon_client::lang::get_or("No installed add-ons match your filter", "No installed add-ons match your filter")
                     },
                 );
                 ui.hint_line(
@@ -5651,9 +5651,9 @@ impl Launcher {
                 self.catalog.config.save(&self.home)?;
                 self.catalog.config.apply_experimental_to_game(&self.home);
                 self.catalog.status = if self.catalog.config.super_perf_mode {
-                    &horizon_client::lang::get_or("Super Performance Mode enabled: fast chunk culling, minimal particles & Vulkan batching.", "Super Performance Mode enabled: fast chunk culling, minimal particles & Vulkan batching.")
+                    horizon_client::lang::get_or("Super Performance Mode enabled: fast chunk culling, minimal particles & Vulkan batching.", "Super Performance Mode enabled: fast chunk culling, minimal particles & Vulkan batching.")
                 } else {
-                    &horizon_client::lang::get_or("Super Performance Mode disabled.", "Super Performance Mode disabled.")
+                    horizon_client::lang::get_or("Super Performance Mode disabled.", "Super Performance Mode disabled.")
                 }
                 .into();
             }
@@ -5669,9 +5669,9 @@ impl Launcher {
                 self.catalog.config.save(&self.home)?;
                 self.catalog.config.apply_experimental_to_game(&self.home);
                 self.catalog.status = if self.catalog.config.battery_perf_mode {
-                    &horizon_client::lang::get_or("Battery Performance Mode enabled: 60 FPS cap with VSync and balanced workers.", "Battery Performance Mode enabled: 60 FPS cap with VSync and balanced workers.")
+                    horizon_client::lang::get_or("Battery Performance Mode enabled: 60 FPS cap with VSync and balanced workers.", "Battery Performance Mode enabled: 60 FPS cap with VSync and balanced workers.")
                 } else {
-                    &horizon_client::lang::get_or("Battery Performance Mode disabled.", "Battery Performance Mode disabled.")
+                    horizon_client::lang::get_or("Battery Performance Mode disabled.", "Battery Performance Mode disabled.")
                 }
                 .into();
             }
@@ -5683,9 +5683,9 @@ impl Launcher {
                 self.catalog.config.save(&self.home)?;
                 self.catalog.config.apply_experimental_to_game(&self.home);
                 self.catalog.status = if self.catalog.config.max_fps_mode {
-                    &horizon_client::lang::get_or("Max FPS Mode enabled: 260 FPS uncapped with VSync disabled.", "Max FPS Mode enabled: 260 FPS uncapped with VSync disabled.")
+                    horizon_client::lang::get_or("Max FPS Mode enabled: 260 FPS uncapped with VSync disabled.", "Max FPS Mode enabled: 260 FPS uncapped with VSync disabled.")
                 } else {
-                    &horizon_client::lang::get_or("Max FPS Mode disabled.", "Max FPS Mode disabled.")
+                    horizon_client::lang::get_or("Max FPS Mode disabled.", "Max FPS Mode disabled.")
                 }
                 .into();
             }
@@ -5693,9 +5693,9 @@ impl Launcher {
                 self.catalog.config.zero_latency_touch = !self.catalog.config.zero_latency_touch;
                 self.catalog.config.save(&self.home)?;
                 self.catalog.status = if self.catalog.config.zero_latency_touch {
-                    &horizon_client::lang::get_or("Zero-Latency Touch Pipeline active.", "Zero-Latency Touch Pipeline active.")
+                    horizon_client::lang::get_or("Zero-Latency Touch Pipeline active.", "Zero-Latency Touch Pipeline active.")
                 } else {
-                    &horizon_client::lang::get_or("Standard touch pipeline active.", "Standard touch pipeline active.")
+                    horizon_client::lang::get_or("Standard touch pipeline active.", "Standard touch pipeline active.")
                 }
                 .into();
             }
@@ -5708,9 +5708,9 @@ impl Launcher {
                 self.catalog.config.save(&self.home)?;
                 self.catalog.config.apply_experimental_to_game(&self.home);
                 self.catalog.status = if self.catalog.config.fast_chunk_upload {
-                    &horizon_client::lang::get_or("Fast Chunk Mesh Upload Boost active.", "Fast Chunk Mesh Upload Boost active.")
+                    horizon_client::lang::get_or("Fast Chunk Mesh Upload Boost active.", "Fast Chunk Mesh Upload Boost active.")
                 } else {
-                    &horizon_client::lang::get_or("Standard chunk mesh upload active.", "Standard chunk mesh upload active.")
+                    horizon_client::lang::get_or("Standard chunk mesh upload active.", "Standard chunk mesh upload active.")
                 }
                 .into();
             }
@@ -5985,8 +5985,8 @@ impl Launcher {
             }
             Some(Action::GameFiles) => {
                 self.catalog.status = if crate::ha_launcher::platform::open_documents(crate::ha_launcher::document_store::ROOT) {
-                    &horizon_client::lang::get_or("Game files opened. Worlds, mods, packs, shaders and reports are available here.", "Game files opened. Worlds, mods, packs, shaders and reports are available here.")
-                } else { &horizon_client::lang::get_or("Open system Files > Starling.", "Open system Files > Starling.") }.into();
+                    horizon_client::lang::get_or("Game files opened. Worlds, mods, packs, shaders and reports are available here.", "Game files opened. Worlds, mods, packs, shaders and reports are available here.")
+                } else { horizon_client::lang::get_or("Open system Files > Starling.", "Open system Files > Starling.") }.into();
             }
             Some(Action::WorldFiles) => {
                 let id = crate::ha_launcher::document_store::folder_id(
@@ -5994,8 +5994,8 @@ impl Launcher {
                     "worlds",
                 );
                 self.catalog.status = if crate::ha_launcher::platform::open_documents(&id) {
-                    &horizon_client::lang::get_or("In Android Files, select a complete world folder, then Copy to a folder you choose.", "In Android Files, select a complete world folder, then Copy to a folder you choose.")
-                } else { &horizon_client::lang::get_or("Open system Files > Starling > Worlds. Copy complete world folders while the game is closed.", "Open system Files > Starling > Worlds. Copy complete world folders while the game is closed.") }.into();
+                    horizon_client::lang::get_or("In Android Files, select a complete world folder, then Copy to a folder you choose.", "In Android Files, select a complete world folder, then Copy to a folder you choose.")
+                } else { horizon_client::lang::get_or("Open system Files > Starling > Worlds. Copy complete world folders while the game is closed.", "Open system Files > Starling > Worlds. Copy complete world folders while the game is closed.") }.into();
             }
             Some(Action::WorkerLimit) => self.open_chooser(chooser::Kind::WorkerLimit),
             Some(Action::ChooseWorkerLimit(limit)) => {
@@ -6078,9 +6078,9 @@ impl Launcher {
             }
             Some(Action::Repository) => {
                 self.catalog.status = if crate::ha_launcher::platform::open_repository() {
-                    &horizon_client::lang::get_or("Repository opened in browser.", "Repository opened in browser.")
+                    horizon_client::lang::get_or("Repository opened in browser.", "Repository opened in browser.")
                 } else {
-                    &horizon_client::lang::get_or("No browser available to open the repository.", "No browser available to open the repository.")
+                    horizon_client::lang::get_or("No browser available to open the repository.", "No browser available to open the repository.")
                 }
                 .into();
             }
@@ -6419,9 +6419,9 @@ impl Launcher {
                 );
                 self.catalog.config.save(&self.home)?;
                 self.catalog.status = if self.catalog.config.disable_launcher_animations {
-                    &horizon_client::lang::get_or("Launcher animations disabled (instant page & modal transitions).", "Launcher animations disabled (instant page & modal transitions).")
+                    horizon_client::lang::get_or("Launcher animations disabled (instant page & modal transitions).", "Launcher animations disabled (instant page & modal transitions).")
                 } else {
-                    &horizon_client::lang::get_or("Launcher animations enabled.", "Launcher animations enabled.")
+                    horizon_client::lang::get_or("Launcher animations enabled.", "Launcher animations enabled.")
                 }
                 .into();
             }
@@ -6433,9 +6433,9 @@ impl Launcher {
                 self.catalog.config.apply_experimental_to_game(&self.home);
                 self.modify_touch_settings(|t| t.disable_game_animations = next);
                 self.catalog.status = if next {
-                    &horizon_client::lang::get_or("In-game animations disabled (static textures, instant FOV/menus, no view bobbing).", "In-game animations disabled (static textures, instant FOV/menus, no view bobbing).")
+                    horizon_client::lang::get_or("In-game animations disabled (static textures, instant FOV/menus, no view bobbing).", "In-game animations disabled (static textures, instant FOV/menus, no view bobbing).")
                 } else {
-                    &horizon_client::lang::get_or("In-game animations enabled.", "In-game animations enabled.")
+                    horizon_client::lang::get_or("In-game animations enabled.", "In-game animations enabled.")
                 }
                 .into();
             }
@@ -6463,8 +6463,8 @@ impl Launcher {
                 }
                 self.catalog.config.save(&self.home)?;
                 self.catalog.status = if self.catalog.config.record_performance {
-                    &horizon_client::lang::get_or("Recording starts on Play. Detailed timings add overhead. Return here to save the report.", "Recording starts on Play. Detailed timings add overhead. Return here to save the report.")
-                } else { &horizon_client::lang::get_or("Performance recording off.", "Performance recording off.") }.into();
+                    horizon_client::lang::get_or("Recording starts on Play. Detailed timings add overhead. Return here to save the report.", "Recording starts on Play. Detailed timings add overhead. Return here to save the report.")
+                } else { horizon_client::lang::get_or("Performance recording off.", "Performance recording off.") }.into();
             }
             Some(Action::ExportPerformance) => {
                 self.catalog.status = match crate::ha_launcher::performance::export(&self.home) {
