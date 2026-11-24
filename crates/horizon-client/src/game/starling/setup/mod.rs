@@ -410,8 +410,16 @@ fn texts(step: &Step) -> (&'static str, String, Option<String>) {
             None,
         ),
         Step::Download(progress) => (
-            "Downloading the game",
-            "From Mojang's servers, checked file by file.".into(),
+            // texts()' title is &'static str, so leak the translated title (the setup screen has
+            // a fixed handful of these, drawn only while setup runs, so the leak is bounded).
+            Box::leak(
+                horizon_client::lang::get_or("Downloading the game", "Downloading the game")
+                    .into_boxed_str(),
+            ),
+            horizon_client::lang::get_or(
+                "From Mojang's servers, checked file by file.",
+                "From Mojang's servers, checked file by file.",
+            ),
             Some(if let Some(started) = progress.transfer_started {
                 let stalled = progress
                     .last_transfer

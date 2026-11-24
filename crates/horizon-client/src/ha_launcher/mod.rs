@@ -280,10 +280,28 @@ pub enum Start {
     Game(PathBuf),
 }
 
+/// The launcher UI is Chinese-first: this fork serves Chinese players, so the built-in
+/// `zh_cn` translations are compiled in and set as the launcher's language before any of its
+/// pages draw. The English text stays as the `get_or` fallback, so a string this file doesn't
+/// have still renders (in English) rather than as a missing key.
+const ZH_CN_JSON: &str = include_str!("../../assets/horizon/lang/zh_cn.json");
+
+/// Load the compiled-in Chinese translations and make them the current language. Idempotent:
+/// the launcher and the game each start once per process, and setting it again is harmless.
+fn init_chinese_ui() {
+    let Ok(entries) = serde_json::from_str::<std::collections::HashMap<String, String>>(ZH_CN_JSON)
+    else {
+        return;
+    };
+    let language = horizon_client::lang::Language::of("zh_cn", entries);
+    horizon_client::lang::set(language);
+}
+
 /// The start's choice, from the app's private files and the game folder `home`: the launcher
 /// after its button, the game after Play (or a restart the game asked for), else the launcher
 /// unless the chosen instance opens directly.
 pub fn start(private: &Path, home: &Path) -> Start {
+    init_chinese_ui();
     let open = std::fs::remove_file(private.join(OPEN)).is_ok();
     let play = private.join(PLAY).is_file();
     if open {

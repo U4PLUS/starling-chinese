@@ -524,7 +524,7 @@ fn toggle(
         x,
         y + (h - 20.0) * 0.5,
         if on { my3_accent() } else { my3_muted() },
-        if on { "Enabled" } else { "Off" },
+        if on { horizon_client::lang::get_or("Enabled", "Enabled") } else { horizon_client::lang::get_or("Off", "Off") },
     );
     let track_x = x + w - 52.0;
     let track_y = y + (h - 26.0) * 0.5;
@@ -1187,7 +1187,7 @@ impl Launcher {
         self.targets.push((eq_btn_rect, Action::OpenControlEditor));
 
         let brand_w = (eq_btn_rect[0] - 66.0).max(70.0);
-        ui.text(Face::SemiBold, 16.0, 54.0, 10.0, my3_text(), "Starling");
+        ui.text(Face::SemiBold, 16.0, 54.0, 10.0, my3_text(), horizon_client::lang::get_or("Starling", "Starling"));
         let fitted_version = ui.fit_text(Face::Regular, 11.0, &self.app_version, brand_w);
         ui.text(
             Face::Regular,
@@ -1287,7 +1287,10 @@ impl Launcher {
                 17.0,
                 fg,
             );
-            let label = ui.fit_text(Face::Medium, 13.5, page.name(), nw - 42.0);
+            // Translate the sidebar label at its single draw site (name() returns &'static
+            // str, so the lookup happens here rather than inside the accessor).
+            let nav_label = horizon_client::lang::get_or(page.name(), page.name());
+            let label = ui.fit_text(Face::Medium, 13.5, &nav_label, nw - 42.0);
             ui.text(
                 Face::Medium,
                 13.5,
@@ -1321,7 +1324,7 @@ impl Launcher {
             let total_mib = f64::from(self.catalog.downloading_size_mib.max(1.0));
             let done_mib = (total_mib * f64::from(frac)).clamp(0.0, total_mib);
             let title = if self.catalog.downloading_title.is_empty() {
-                "Downloading add-on...".to_owned()
+                horizon_client::lang::get_or("Downloading add-on...", "Downloading add-on...").to_owned()
             } else {
                 format!("Installing {}", self.catalog.downloading_title)
             };
@@ -1353,7 +1356,7 @@ impl Launcher {
                 &self.catalog.transfer.speed_label(),
                 &self.catalog.transfer.eta_label(done_mib, total_mib),
                 step_idx,
-                &["Resolve", "Download", "Verify", "Install"],
+                &[horizon_client::lang::get_or("Resolve", "Resolve"), horizon_client::lang::get_or("Download", "Download"), horizon_client::lang::get_or("Verify", "Verify"), horizon_client::lang::get_or("Install", "Install")],
                 smooth_frac,
                 self.anim.shimmer_phase,
                 &stage,
@@ -1402,8 +1405,11 @@ impl Launcher {
                     overall * 100.0
                 );
                 let stage_text = match progress.stage {
-                    InstallStage::Download => "Downloading Java Edition 26.3 client.jar",
-                    other => other.label(),
+                    InstallStage::Download => horizon_client::lang::get_or(
+                        "Downloading Java Edition 26.3 client.jar",
+                        "Downloading Java Edition 26.3 client.jar",
+                    ),
+                    other => horizon_client::lang::get_or(other.label(), other.label()),
                 };
                 draw_my3_progress_view(
                     &mut ui,
@@ -1411,19 +1417,19 @@ impl Launcher {
                     content_x,
                     content_w,
                     h,
-                    "Getting your game ready",
+                    horizon_client::lang::get_or("Getting your game ready", "Getting your game ready"),
                     &sub_left,
                     &sub_right,
                     &self.install_transfer.speed_label(),
                     &self.install_transfer.eta_label(done_mib, total_mib),
                     current,
                     &[
-                        "Manifest",
-                        "Metadata",
-                        "Client JAR",
-                        "Verify",
-                        "Extract",
-                        "Ready",
+                        horizon_client::lang::get_or("Manifest", "Manifest"),
+                        horizon_client::lang::get_or("Metadata", "Metadata"),
+                        horizon_client::lang::get_or("Client JAR", "Client JAR"),
+                        horizon_client::lang::get_or("Verify", "Verify"),
+                        horizon_client::lang::get_or("Extract", "Extract"),
+                        horizon_client::lang::get_or("Ready", "Ready"),
                     ],
                     smooth_overall,
                     self.anim.shimmer_phase,
@@ -1445,11 +1451,11 @@ impl Launcher {
                     card_y + 18.0,
                     my3_text(),
                     if installed {
-                        "Ready to play"
+                        horizon_client::lang::get_or("Ready to play", "Ready to play")
                     } else if compact {
-                        "Your Java worlds"
+                        horizon_client::lang::get_or("Your Java worlds", "Your Java worlds")
                     } else {
-                        "Your Java worlds, on Android"
+                        horizon_client::lang::get_or("Your Java worlds, on Android", "Your Java worlds, on Android")
                     },
                 );
                 ui.text(
@@ -1485,9 +1491,9 @@ impl Launcher {
                         [content_x + 12.0, btn_y + 4.0, play_w - 24.0, 26.0],
                         my3_text(),
                         if installed {
-                            "Starting Starling…"
+                            horizon_client::lang::get_or("Starting Starling…", "Starting Starling…")
                         } else {
-                            "Opening setup…"
+                            horizon_client::lang::get_or("Opening setup…", "Opening setup…")
                         },
                     );
                 } else {
@@ -1496,11 +1502,11 @@ impl Launcher {
                         &mut self.targets,
                         [content_x, btn_y, play_w, 46.0],
                         if self.error.is_some() {
-                            "Try again"
+                            horizon_client::lang::get_or("Try again", "Try again")
                         } else if installed {
-                            "Play Minecraft 26.3"
+                            horizon_client::lang::get_or("Play Minecraft 26.3", "Play Minecraft 26.3")
                         } else {
-                            "Set up Starling"
+                            horizon_client::lang::get_or("Set up Starling", "Set up Starling")
                         },
                         Action::Play,
                         true,
@@ -1537,11 +1543,11 @@ impl Launcher {
                 header_y,
                 my3_text(),
                 if page == Page::Mods {
-                    "Mods"
+                    horizon_client::lang::get_or("Mods", "Mods")
                 } else if page == Page::Shaders {
-                    "Shader Packs"
+                    horizon_client::lang::get_or("Shader Packs", "Shader Packs")
                 } else {
-                    "Resource Packs"
+                    horizon_client::lang::get_or("Resource Packs", "Resource Packs")
                 },
             );
             if matches!(page, Page::Shaders | Page::Mods) {
@@ -1575,9 +1581,9 @@ impl Launcher {
             let search_btn_w = 98.0;
             let field_w = (content_w - search_btn_w - 8.0).max(120.0);
             let search_hint = if page == Page::Mods {
-                "Search mods or paste .hmod HTTPS link..."
+                horizon_client::lang::get_or("Search mods or paste .hmod HTTPS link...", "Search mods or paste .hmod HTTPS link...")
             } else {
-                "Search catalog..."
+                horizon_client::lang::get_or("Search catalog...", "Search catalog...")
             };
             let search_rect = ui.text_field(
                 content_x,
@@ -1596,9 +1602,9 @@ impl Launcher {
                 &mut self.targets,
                 [content_x + field_w + 8.0, search_y, search_btn_w, 36.0],
                 if page == Page::Mods && self.catalog.query.trim().starts_with("https://") {
-                    "Import .hmod"
+                    horizon_client::lang::get_or("Import .hmod", "Import .hmod")
                 } else {
-                    "Search"
+                    horizon_client::lang::get_or("Search", "Search")
                 },
                 Action::Search,
                 true,
@@ -1614,7 +1620,7 @@ impl Launcher {
                 &mut ui,
                 &mut self.targets,
                 [content_x, sub_y, 114.0, 29.0],
-                "Open folder",
+                horizon_client::lang::get_or("Open folder", "Open folder"),
                 Action::OpenFolder(kind),
                 false,
             );
@@ -1622,7 +1628,7 @@ impl Launcher {
                 &mut ui,
                 &mut self.targets,
                 [content_x + 122.0, sub_y, 114.0, 29.0],
-                "Import file",
+                horizon_client::lang::get_or("Import file", "Import file"),
                 Action::Import(kind),
                 false,
             );
@@ -1732,7 +1738,7 @@ impl Launcher {
                     );
                 }
 
-                // Badge chip ("Built-in • Tap for info")
+                // Badge chip (horizon_client::lang::get_or("Built-in • Tap for info", "Built-in • Tap for info"))
                 let text_max = (content_w - 190.0).max(80.0);
                 let fitted_title = ui.fit_text(Face::SemiBold, 15.0, title, text_max);
                 let rich_desc = self
@@ -1763,7 +1769,7 @@ impl Launcher {
                     content_x + 64.0,
                     y + 45.0,
                     my3_accent(),
-                    "Horizon Built-in • Tap for versions, Modrinth info & screenshots",
+                    horizon_client::lang::get_or("Horizon Built-in • Tap for versions, Modrinth info & screenshots", "Horizon Built-in • Tap for versions, Modrinth info & screenshots"),
                 );
                 if let Some(c) = ui.clip_rect(card_rect) {
                     self.targets.push((c, Action::OpenBundledProject(id)));
@@ -1772,7 +1778,7 @@ impl Launcher {
                     &mut ui,
                     &mut self.targets,
                     btn_rect,
-                    if enabled { "Installed" } else { "Install" },
+                    if enabled { horizon_client::lang::get_or("Installed", "Installed") } else { horizon_client::lang::get_or("Install", "Install") },
                     Action::ToggleBundled(id),
                     !enabled,
                 );
@@ -1829,7 +1835,7 @@ impl Launcher {
                 let text_max = (content_w - 190.0).max(80.0);
                 let title = ui.fit_text(Face::SemiBold, 15.0, &p.title, text_max);
                 let rich_summary = if crate::ha_launcher::catalog::native_unsupported(p) {
-                    "Native .hnmod temporarily unsupported on Android; built-in mods are available."
+                    horizon_client::lang::get_or("Native .hnmod temporarily unsupported on Android; built-in mods are available.", "Native .hnmod temporarily unsupported on Android; built-in mods are available.")
                 } else {
                     self.catalog
                         .enriched_summaries
@@ -1923,7 +1929,7 @@ impl Launcher {
                 &mut ui,
                 &mut self.targets,
                 [content_x, pager_y, 102.0, 32.0],
-                "Previous",
+                horizon_client::lang::get_or("Previous", "Previous"),
                 Action::Previous,
                 false,
             );
@@ -1931,7 +1937,7 @@ impl Launcher {
                 &mut ui,
                 &mut self.targets,
                 [content_x + 110.0, pager_y, 102.0, 32.0],
-                "Next",
+                horizon_client::lang::get_or("Next", "Next"),
                 Action::Next,
                 false,
             );
@@ -1968,7 +1974,7 @@ impl Launcher {
                     &mut ui,
                     &mut self.targets,
                     [w - 118.0, h - 38.0, 92.0, 28.0],
-                    "GitHub",
+                    horizon_client::lang::get_or("GitHub", "GitHub"),
                     Action::Repository,
                     false,
                 );
@@ -2039,7 +2045,7 @@ impl Launcher {
                 x + 22.0,
                 y + 21.0,
                 my3_text(),
-                "Set up Starling",
+                horizon_client::lang::get_or("Set up Starling", "Set up Starling"),
             );
             ui.text(
                 Face::Regular,
@@ -2047,7 +2053,7 @@ impl Launcher {
                 x + 22.0,
                 y + 56.0,
                 my3_muted(),
-                "What should open after setup?",
+                horizon_client::lang::get_or("What should open after setup?", "What should open after setup?"),
             );
             ui.text(
                 Face::Regular,
@@ -2055,18 +2061,18 @@ impl Launcher {
                 x + 22.0,
                 y + 81.0,
                 my3_muted(),
-                "Change this later in Settings > Launcher.",
+                horizon_client::lang::get_or("Change this later in Settings > Launcher.", "Change this later in Settings > Launcher."),
             );
             let bw = (width - 64.0) / 3.0;
             for (index, (label, action, primary)) in [
-                ("Cancel", Action::Dismiss, false),
+                (horizon_client::lang::get_or("Cancel", "Cancel"), Action::Dismiss, false),
                 (
-                    "Launcher",
+                    horizon_client::lang::get_or("Launcher", "Launcher"),
                     Action::ChooseSetupDestination(false),
                     !self.catalog.config.open_directly,
                 ),
                 (
-                    "Game",
+                    horizon_client::lang::get_or("Game", "Game"),
                     Action::ChooseSetupDestination(true),
                     self.catalog.config.open_directly,
                 ),
@@ -2109,14 +2115,14 @@ impl Launcher {
                 x + 22.0,
                 y + 24.0,
                 my3_text(),
-                "Exit Starling?",
+                horizon_client::lang::get_or("Exit Starling?", "Exit Starling?"),
             );
             let bw = (width - 52.0) * 0.5;
             button(
                 &mut ui,
                 &mut self.targets,
                 [x + 20.0, y + 94.0, bw, 42.0],
-                "Cancel",
+                horizon_client::lang::get_or("Cancel", "Cancel"),
                 Action::Dismiss,
                 false,
             );
@@ -2124,7 +2130,7 @@ impl Launcher {
                 &mut ui,
                 &mut self.targets,
                 [x + 32.0 + bw, y + 94.0, bw, 42.0],
-                "Exit",
+                horizon_client::lang::get_or("Exit", "Exit"),
                 Action::ConfirmExit,
                 true,
             );
@@ -2222,9 +2228,9 @@ impl Launcher {
             header_y + 2.0,
             my3_text(),
             if self.catalog.installed_sub_tab == InstalledSubTab::Library {
-                "Content Library"
+                horizon_client::lang::get_or("Content Library", "Content Library")
             } else {
-                "Profile File Manager"
+                horizon_client::lang::get_or("Profile File Manager", "Profile File Manager")
             },
         );
 
@@ -2241,7 +2247,7 @@ impl Launcher {
             ui,
             &mut self.targets,
             lib_rect,
-            "Library",
+            horizon_client::lang::get_or("Library", "Library"),
             Action::SetInstalledSubTab(InstalledSubTab::Library),
             self.catalog.installed_sub_tab == InstalledSubTab::Library,
         );
@@ -2249,7 +2255,7 @@ impl Launcher {
             ui,
             &mut self.targets,
             fm_rect,
-            "File Manager",
+            horizon_client::lang::get_or("File Manager", "File Manager"),
             Action::SetInstalledSubTab(InstalledSubTab::FileManager),
             self.catalog.installed_sub_tab == InstalledSubTab::FileManager,
         );
@@ -2267,7 +2273,7 @@ impl Launcher {
                 34.0,
                 "",
                 &self.catalog.installed_query,
-                "Search installed mods, packs & shaders...",
+                horizon_client::lang::get_or("Search installed mods, packs & shaders...", "Search installed mods, packs & shaders..."),
                 self.catalog.editing == Some("installed_search"),
             );
             self.targets
@@ -2278,7 +2284,10 @@ impl Launcher {
                 ui,
                 &mut self.targets,
                 sort_r,
-                self.catalog.installed_sort.label(),
+                &horizon_client::lang::get_or(
+                    self.catalog.installed_sort.label(),
+                    self.catalog.installed_sort.label(),
+                ),
                 Action::CycleInstalledSort,
                 false,
             );
@@ -2376,16 +2385,16 @@ impl Launcher {
                     top + 18.0,
                     my3_text(),
                     if self.catalog.local.is_empty() {
-                        "No local add-ons installed yet"
+                        horizon_client::lang::get_or("No local add-ons installed yet", "No local add-ons installed yet")
                     } else {
-                        "No installed add-ons match your filter"
+                        horizon_client::lang::get_or("No installed add-ons match your filter", "No installed add-ons match your filter")
                     },
                 );
                 ui.hint_line(
                     content_x + 74.0,
                     top + 42.0,
                     (content_w - 92.0).max(80.0),
-                    "Import .hmod/.jar mods, .zip resource packs, or shader packs — or browse files in File Manager.",
+                    horizon_client::lang::get_or("Import .hmod/.jar mods, .zip resource packs, or shader packs — or browse files in File Manager.", "Import .hmod/.jar mods, .zip resource packs, or shader packs — or browse files in File Manager."),
                     my3_muted(),
                 );
                 let cta_y = top + card_h - 46.0;
@@ -2394,7 +2403,7 @@ impl Launcher {
                     ui,
                     &mut self.targets,
                     [content_x + 20.0, cta_y, cta_w, 34.0],
-                    "Import Mod",
+                    horizon_client::lang::get_or("Import Mod", "Import Mod"),
                     Action::Import(Kind::Mods),
                     true,
                 );
@@ -2402,7 +2411,7 @@ impl Launcher {
                     ui,
                     &mut self.targets,
                     [content_x + 28.0 + cta_w, cta_y, cta_w, 34.0],
-                    "Import Pack",
+                    horizon_client::lang::get_or("Import Pack", "Import Pack"),
                     Action::Import(Kind::Packs),
                     false,
                 );
@@ -2410,7 +2419,7 @@ impl Launcher {
                     ui,
                     &mut self.targets,
                     [content_x + 36.0 + cta_w * 2.0, cta_y, cta_w, 34.0],
-                    "File Manager",
+                    horizon_client::lang::get_or("File Manager", "File Manager"),
                     Action::SetInstalledSubTab(InstalledSubTab::FileManager),
                     false,
                 );
@@ -2558,7 +2567,7 @@ impl Launcher {
                     ui,
                     &mut self.targets,
                     export_r,
-                    "Export",
+                    horizon_client::lang::get_or("Export", "Export"),
                     Action::ExportLocal(orig_idx),
                     false,
                 );
@@ -2566,7 +2575,7 @@ impl Launcher {
                     ui,
                     &mut self.targets,
                     delete_r,
-                    "Delete",
+                    horizon_client::lang::get_or("Delete", "Delete"),
                     Action::DeleteLocal(orig_idx),
                     false,
                 );
@@ -2614,7 +2623,7 @@ impl Launcher {
             ui,
             &mut self.targets,
             [content_x + content_w - right_cta_w, nav_y, imp_btn_w, 30.0],
-            "Import",
+            horizon_client::lang::get_or("Import", "Import"),
             Action::FmImportHere,
             true,
         );
@@ -2735,21 +2744,21 @@ impl Launcher {
         let paste_label = if clip_count > 0 {
             format!("Paste ({clip_count})")
         } else {
-            "Paste".into()
+            horizon_client::lang::get_or("Paste", "Paste").into()
         };
         let del_label = if sel_count > 0 {
             format!("Delete ({sel_count})")
         } else {
-            "Delete".into()
+            horizon_client::lang::get_or("Delete", "Delete").into()
         };
         let tools: [(&str, Action, bool); 8] = [
-            ("All", Action::FmSelectAll, false),
-            ("Clear", Action::FmClearSelection, false),
-            ("Copy", Action::FmCopy, sel_count > 0),
-            ("Cut", Action::FmCut, sel_count > 0),
+            (horizon_client::lang::get_or("All", "All"), Action::FmSelectAll, false),
+            (horizon_client::lang::get_or("Clear", "Clear"), Action::FmClearSelection, false),
+            (horizon_client::lang::get_or("Copy", "Copy"), Action::FmCopy, sel_count > 0),
+            (horizon_client::lang::get_or("Cut", "Cut"), Action::FmCut, sel_count > 0),
             (&paste_label, Action::FmPaste, clip_count > 0),
-            ("Rename", Action::FmOpenRenameSelected, sel_count == 1),
-            ("Export", Action::FmExportSelected, sel_count > 0),
+            (horizon_client::lang::get_or("Rename", "Rename"), Action::FmOpenRenameSelected, sel_count == 1),
+            (horizon_client::lang::get_or("Export", "Export"), Action::FmExportSelected, sel_count > 0),
             (&del_label, Action::FmRequestDeleteSelected, sel_count > 0),
         ];
         let t_gap = 4.0;
@@ -2780,13 +2789,13 @@ impl Launcher {
                 content_x + 54.0,
                 top + 18.0,
                 my3_text(),
-                "This folder is empty",
+                horizon_client::lang::get_or("This folder is empty", "This folder is empty"),
             );
             ui.hint_line(
                 content_x + 54.0,
                 top + 40.0,
                 (content_w - 72.0).max(80.0),
-                "Use Import to copy files from Android storage, + Folder to create a directory, or Paste from clipboard.",
+                horizon_client::lang::get_or("Use Import to copy files from Android storage, + Folder to create a directory, or Paste from clipboard.", "Use Import to copy files from Android storage, + Folder to create a directory, or Paste from clipboard."),
                 my3_muted(),
             );
             return;
@@ -2936,7 +2945,7 @@ impl Launcher {
                 ui,
                 &mut self.targets,
                 info_r,
-                "Details",
+                horizon_client::lang::get_or("Details", "Details"),
                 Action::FmOpenDetails(idx),
                 false,
             );
@@ -2944,7 +2953,7 @@ impl Launcher {
                 ui,
                 &mut self.targets,
                 ren_r,
-                "Rename",
+                horizon_client::lang::get_or("Rename", "Rename"),
                 Action::FmOpenRename(idx),
                 false,
             );
@@ -2952,7 +2961,7 @@ impl Launcher {
                 ui,
                 &mut self.targets,
                 del_r,
-                "Delete",
+                horizon_client::lang::get_or("Delete", "Delete"),
                 Action::FmRequestDeleteSingle(idx),
                 false,
             );
@@ -2993,7 +3002,7 @@ impl Launcher {
                 ui.border(mx, my, mw, mh, 20.0, my3_border());
                 ui.icon(Icon::Trash, mx + 20.0, my + 20.0, 22.0, my3_accent());
                 let title = if paths.len() == 1 {
-                    "Delete selected item?".to_owned()
+                    horizon_client::lang::get_or("Delete selected item?", "Delete selected item?").to_owned()
                 } else {
                     format!("Delete {} selected items?", paths.len())
                 };
@@ -3019,7 +3028,7 @@ impl Launcher {
                     mx + 20.0,
                     my + 80.0,
                     mw - 40.0,
-                    "This permanently deletes the selected file(s) from this profile and cannot be undone.",
+                    horizon_client::lang::get_or("This permanently deletes the selected file(s) from this profile and cannot be undone.", "This permanently deletes the selected file(s) from this profile and cannot be undone."),
                     my3_muted(),
                 );
                 let bw = (mw - 52.0) * 0.5;
@@ -3027,7 +3036,7 @@ impl Launcher {
                     ui,
                     &mut self.targets,
                     [mx + 20.0, my + mh - 54.0, bw, 38.0],
-                    "Cancel",
+                    horizon_client::lang::get_or("Cancel", "Cancel"),
                     Action::FmCloseModal,
                     false,
                 );
@@ -3035,7 +3044,7 @@ impl Launcher {
                     ui,
                     &mut self.targets,
                     [mx + 32.0 + bw, my + mh - 54.0, bw, 38.0],
-                    "Confirm Delete",
+                    horizon_client::lang::get_or("Confirm Delete", "Confirm Delete"),
                     Action::FmConfirmDelete,
                     true,
                 );
@@ -3056,7 +3065,7 @@ impl Launcher {
                     mx + 20.0,
                     my + 16.0,
                     my3_text(),
-                    "Rename File or Folder",
+                    horizon_client::lang::get_or("Rename File or Folder", "Rename File or Folder"),
                 );
                 ui.hint_line(
                     mx + 20.0,
@@ -3072,7 +3081,7 @@ impl Launcher {
                     48.0,
                     "NEW NAME",
                     &self.catalog.fm_input_text,
-                    "Enter new filename",
+                    horizon_client::lang::get_or("Enter new filename", "Enter new filename"),
                     self.catalog.editing == Some("fm_rename"),
                 );
                 self.targets.push((field_r, Action::Field("fm_rename")));
@@ -3081,7 +3090,7 @@ impl Launcher {
                     ui,
                     &mut self.targets,
                     [mx + 20.0, my + mh - 52.0, bw, 38.0],
-                    "Cancel",
+                    horizon_client::lang::get_or("Cancel", "Cancel"),
                     Action::FmCloseModal,
                     false,
                 );
@@ -3089,7 +3098,7 @@ impl Launcher {
                     ui,
                     &mut self.targets,
                     [mx + 32.0 + bw, my + mh - 52.0, bw, 38.0],
-                    "Save Name",
+                    horizon_client::lang::get_or("Save Name", "Save Name"),
                     Action::FmSubmitRename,
                     true,
                 );
@@ -3110,7 +3119,7 @@ impl Launcher {
                     mx + 20.0,
                     my + 16.0,
                     my3_text(),
-                    "Create New Folder",
+                    horizon_client::lang::get_or("Create New Folder", "Create New Folder"),
                 );
                 let loc = if self.catalog.fm_current_dir.is_empty() {
                     "/".to_owned()
@@ -3131,7 +3140,7 @@ impl Launcher {
                     48.0,
                     "FOLDER NAME",
                     &self.catalog.fm_input_text,
-                    "Enter folder name",
+                    horizon_client::lang::get_or("Enter folder name", "Enter folder name"),
                     self.catalog.editing == Some("fm_new_folder"),
                 );
                 self.targets.push((field_r, Action::Field("fm_new_folder")));
@@ -3140,7 +3149,7 @@ impl Launcher {
                     ui,
                     &mut self.targets,
                     [mx + 20.0, my + mh - 52.0, bw, 38.0],
-                    "Cancel",
+                    horizon_client::lang::get_or("Cancel", "Cancel"),
                     Action::FmCloseModal,
                     false,
                 );
@@ -3148,7 +3157,7 @@ impl Launcher {
                     ui,
                     &mut self.targets,
                     [mx + 32.0 + bw, my + mh - 52.0, bw, 38.0],
-                    "Create Folder",
+                    horizon_client::lang::get_or("Create Folder", "Create Folder"),
                     Action::FmSubmitNewFolder,
                     true,
                 );
@@ -3216,7 +3225,7 @@ impl Launcher {
                         ui,
                         &mut self.targets,
                         [mx + 18.0, btn_y, bw, 34.0],
-                        "Rename",
+                        horizon_client::lang::get_or("Rename", "Rename"),
                         Action::FmOpenRename(entry_idx),
                         false,
                     );
@@ -3224,7 +3233,7 @@ impl Launcher {
                         ui,
                         &mut self.targets,
                         [mx + 24.0 + bw, btn_y, bw, 34.0],
-                        "Export",
+                        horizon_client::lang::get_or("Export", "Export"),
                         Action::FmExportSingle(entry_idx),
                         false,
                     );
@@ -3232,7 +3241,7 @@ impl Launcher {
                         ui,
                         &mut self.targets,
                         [mx + 30.0 + bw * 2.0, btn_y, bw, 34.0],
-                        "Delete",
+                        horizon_client::lang::get_or("Delete", "Delete"),
                         Action::FmRequestDeleteSingle(entry_idx),
                         false,
                     );
@@ -3240,7 +3249,7 @@ impl Launcher {
                         ui,
                         &mut self.targets,
                         [mx + 36.0 + bw * 3.0, btn_y, bw, 34.0],
-                        "Done",
+                        horizon_client::lang::get_or("Done", "Done"),
                         Action::FmCloseModal,
                         true,
                     );
@@ -3249,7 +3258,7 @@ impl Launcher {
                         ui,
                         &mut self.targets,
                         [mx + mw - 128.0, btn_y, 110.0, 34.0],
-                        "Close",
+                        horizon_client::lang::get_or("Close", "Close"),
                         Action::FmCloseModal,
                         true,
                     );
@@ -3267,15 +3276,15 @@ impl Launcher {
             let version = modal
                 .versions
                 .get(modal.selected_version)
-                .map_or_else(|| "Latest".to_owned(), |v| v.number.clone());
+                .map_or_else(|| horizon_client::lang::get_or("Latest", "Latest").to_owned(), |v| v.number.clone());
             if let Some(bundled) = modal.bundled_id {
                 if self.catalog.bundled_enabled.contains(bundled) {
-                    "Installed (Tap to Disable)".to_owned()
+                    horizon_client::lang::get_or("Installed (Tap to Disable)", "Installed (Tap to Disable)").to_owned()
                 } else {
                     format!("Enable Built-in ({version})")
                 }
             } else if crate::ha_launcher::catalog::native_unsupported(&modal.project) {
-                "Native .hnmod temporarily unsupported on Android".to_owned()
+                horizon_client::lang::get_or("Native .hnmod temporarily unsupported on Android", "Native .hnmod temporarily unsupported on Android").to_owned()
             } else if let Some(state) = self.catalog.download_label(&modal.project) {
                 state
             } else {
@@ -3365,7 +3374,7 @@ impl Launcher {
             meta_parts.push(modal.license.clone());
         }
         if modal.loading {
-            meta_parts.push("Syncing Modrinth details...".into());
+            meta_parts.push(horizon_client::lang::get_or("Syncing Modrinth details...", "Syncing Modrinth details...").into());
         }
         let meta_line = meta_parts.join("  •  ");
         let fitted_meta = ui.fit_text(Face::Regular, 12.5, &meta_line, title_max);
@@ -3417,7 +3426,7 @@ impl Launcher {
                 inner_x,
                 cy,
                 my3_accent(),
-                "About Project",
+                horizon_client::lang::get_or("About Project", "About Project"),
             );
         }
         cy += 22.0;
@@ -3438,7 +3447,7 @@ impl Launcher {
                     inner_x,
                     cy,
                     my3_accent(),
-                    "Screenshots",
+                    horizon_client::lang::get_or("Screenshots", "Screenshots"),
                 );
             }
             cy += 22.0;
@@ -3484,7 +3493,7 @@ impl Launcher {
                 inner_x,
                 cy,
                 my3_accent(),
-                "Available Versions",
+                horizon_client::lang::get_or("Available Versions", "Available Versions"),
             );
         }
         cy += 24.0;
@@ -3553,7 +3562,7 @@ impl Launcher {
             ui,
             &mut self.targets,
             [mx + 18.0, my + mh - 48.0, 108.0, 38.0],
-            "Close",
+            horizon_client::lang::get_or("Close", "Close"),
             Action::CloseProjectModal,
             false,
         );
@@ -3607,7 +3616,7 @@ impl Launcher {
             mx + 64.0,
             my + 13.0,
             my3_text(),
-            "Diagnostics & Runtime Health Summary",
+            horizon_client::lang::get_or("Diagnostics & Runtime Health Summary", "Diagnostics & Runtime Health Summary"),
         );
         ui.text(
             Face::Regular,
@@ -3615,7 +3624,7 @@ impl Launcher {
             mx + 64.0,
             my + 33.0,
             my3_muted(),
-            "Live renderer pipeline, profile state, error log & telemetry status",
+            horizon_client::lang::get_or("Live renderer pipeline, profile state, error log & telemetry status", "Live renderer pipeline, profile state, error log & telemetry status"),
         );
 
         ui.rounded(mx + 16.0, my + 58.0, mw - 32.0, 1.0, 0.0, my3_border());
@@ -3716,7 +3725,7 @@ impl Launcher {
             .ok()
             .map(|e| crate::ha_launcher::diagnostics::redact(&e))
             .unwrap_or_else(|| {
-                "None — last session exited cleanly with zero unhandled errors.".into()
+                horizon_client::lang::get_or("None — last session exited cleanly with zero unhandled errors.", "None — last session exited cleanly with zero unhandled errors.").into()
             });
 
         ui.text(
@@ -3758,7 +3767,7 @@ impl Launcher {
             ui,
             &mut self.targets,
             [gx, btn_y, bw3, 36.0],
-            "Close",
+            horizon_client::lang::get_or("Close", "Close"),
             Action::CloseDiagnosticsSummary,
             false,
         );
@@ -3766,7 +3775,7 @@ impl Launcher {
             ui,
             &mut self.targets,
             [gx + bw3 + 8.0, btn_y, bw3, 36.0],
-            "Open Reports",
+            horizon_client::lang::get_or("Open Reports", "Open Reports"),
             Action::OpenReportsFolder,
             false,
         );
@@ -3774,7 +3783,7 @@ impl Launcher {
             ui,
             &mut self.targets,
             [gx + (bw3 + 8.0) * 2.0, btn_y, bw3, 36.0],
-            "Export ZIP",
+            horizon_client::lang::get_or("Export ZIP", "Export ZIP"),
             Action::ExportDiagnostics,
             true,
         );
@@ -3801,44 +3810,44 @@ impl Launcher {
                 content_x,
                 62.0 + slide_y,
                 my3_text(),
-                "Settings",
+                horizon_client::lang::get_or("Settings", "Settings"),
             );
 
             let cards: [(Icon, &str, &str, Action); 6] = [
                 (
                     Icon::Monitor,
-                    "Video Settings",
-                    "Rendering, resolution and performance",
+                    horizon_client::lang::get_or("Video Settings", "Video Settings"),
+                    horizon_client::lang::get_or("Rendering, resolution and performance", "Rendering, resolution and performance"),
                     Action::SettingsCat(SettingsCategory::Video),
                 ),
                 (
                     Icon::Gear,
-                    "Launcher Settings",
-                    "Theme customization, profiles, DPI scale & preferences",
+                    horizon_client::lang::get_or("Launcher Settings", "Launcher Settings"),
+                    horizon_client::lang::get_or("Theme customization, profiles, DPI scale & preferences", "Theme customization, profiles, DPI scale & preferences"),
                     Action::SettingsCat(SettingsCategory::Launcher),
                 ),
                 (
                     Icon::Gamepad,
-                    "Controls",
-                    "HUD touch layout, buttons, sensitivity and profiles",
+                    horizon_client::lang::get_or("Controls", "Controls"),
+                    horizon_client::lang::get_or("HUD touch layout, buttons, sensitivity and profiles", "HUD touch layout, buttons, sensitivity and profiles"),
                     Action::SettingsCat(SettingsCategory::Controls),
                 ),
                 (
                     Icon::Flask,
-                    "Experimental Stuff",
-                    "Unstable features. We put the weird shit here.",
+                    horizon_client::lang::get_or("Experimental Stuff", "Experimental Stuff"),
+                    horizon_client::lang::get_or("Unstable features. We put the weird shit here.", "Unstable features. We put the weird shit here."),
                     Action::SettingsCat(SettingsCategory::Experimental),
                 ),
                 (
                     Icon::Terminal,
-                    "Diagnostics",
-                    "Logs, device info and troubleshooting",
+                    horizon_client::lang::get_or("Diagnostics", "Diagnostics"),
+                    horizon_client::lang::get_or("Logs, device info and troubleshooting", "Logs, device info and troubleshooting"),
                     Action::SettingsCat(SettingsCategory::Diagnostics),
                 ),
                 (
                     Icon::MicrosoftGrid,
-                    "Account",
-                    "Microsoft and Xbox sign-in",
+                    horizon_client::lang::get_or("Account", "Account"),
+                    horizon_client::lang::get_or("Microsoft and Xbox sign-in", "Microsoft and Xbox sign-in"),
                     Action::Account,
                 ),
             ];
@@ -3973,30 +3982,30 @@ impl Launcher {
                 let fov_frac = ((opts.fov - 30.0) / 80.0).clamp(0.0, 1.0);
                 let preset_str = format!("{} ›", capitalize(&opts.graphics_preset));
                 let fps_str = if opts.max_fps >= 260 {
-                    "Unlimited ›".to_owned()
+                    horizon_client::lang::get_or("Unlimited ›", "Unlimited ›").to_owned()
                 } else {
                     format!("{} FPS ›", opts.max_fps)
                 };
                 let clouds_str = match opts.clouds.as_str() {
-                    "false" => "Off ›",
-                    "fast" => "Fast ›",
-                    _ => "Fancy ›",
+                    "false" => horizon_client::lang::get_or("Off ›", "Off ›"),
+                    "fast" => horizon_client::lang::get_or("Fast ›", "Fast ›"),
+                    _ => horizon_client::lang::get_or("Fancy ›", "Fancy ›"),
                 };
                 let game_anim_off = c.disable_game_animations || touch_cfg.disable_game_animations;
 
                 let mut rows = vec![
                     (
                         "DISPLAY, RESOLUTION & RENDERER PIPELINE",
-                        "Hardware GPU backend, 3D resolution scale, refresh rate & display geometry",
+                        horizon_client::lang::get_or("Hardware GPU backend, 3D resolution scale, refresh rate & display geometry", "Hardware GPU backend, 3D resolution scale, refresh rate & display geometry"),
                         SettingControl::SectionHeader(c.renderer.label(), Icon::Monitor),
                     ),
                     (
-                        "Rendering backend (Vulkan / GLES)",
-                        "Hardware GPU driver pipeline used when launching Minecraft",
+                        horizon_client::lang::get_or("Rendering backend (Vulkan / GLES)", "Rendering backend (Vulkan / GLES)"),
+                        horizon_client::lang::get_or("Hardware GPU driver pipeline used when launching Minecraft", "Hardware GPU driver pipeline used when launching Minecraft"),
                         SettingControl::Button(&renderer_str, Action::Renderer, true),
                     ),
                     (
-                        "Client resolution scale",
+                        horizon_client::lang::get_or("Client resolution scale", "Client resolution scale"),
                         "3D framebuffer resolution percentage (also adjustable live in-game via Floating Menu)",
                         if self.catalog.editing == Some("render_scale") {
                             SettingControl::TextField {
@@ -4016,23 +4025,23 @@ impl Launcher {
                         },
                     ),
                     (
-                        "Display refresh rate",
-                        "Preferred Android screen refresh rate (60Hz / 90Hz / 120Hz)",
+                        horizon_client::lang::get_or("Display refresh rate", "Display refresh rate"),
+                        horizon_client::lang::get_or("Preferred Android screen refresh rate (60Hz / 90Hz / 120Hz)", "Preferred Android screen refresh rate (60Hz / 90Hz / 120Hz)"),
                         SettingControl::Button(&hz_str, Action::DisplayHz, false),
                     ),
                     (
-                        "Immersive fullscreen",
-                        "Hide Android system navigation bars during launcher and gameplay",
+                        horizon_client::lang::get_or("Immersive fullscreen", "Immersive fullscreen"),
+                        horizon_client::lang::get_or("Hide Android system navigation bars during launcher and gameplay", "Hide Android system navigation bars during launcher and gameplay"),
                         SettingControl::Toggle(c.screen.immersive, Action::Immersive),
                     ),
                     (
                         "IN-GAME GRAPHICS, DISTANCES & MOTION",
-                        "Chunk visibility, simulation radius, FOV, framerate & animation controls",
-                        SettingControl::SectionHeader("Minecraft Video", Icon::Shaders),
+                        horizon_client::lang::get_or("Chunk visibility, simulation radius, FOV, framerate & animation controls", "Chunk visibility, simulation radius, FOV, framerate & animation controls"),
+                        SettingControl::SectionHeader(horizon_client::lang::get_or("Minecraft Video", "Minecraft Video"), Icon::Shaders),
                     ),
                     (
-                        "Render Distance",
-                        "Visible chunk radius (6–8 chunks recommended on Mali-G52 with shaders)",
+                        horizon_client::lang::get_or("Render Distance", "Render Distance"),
+                        horizon_client::lang::get_or("Visible chunk radius (6–8 chunks recommended on Mali-G52 with shaders)", "Visible chunk radius (6–8 chunks recommended on Mali-G52 with shaders)"),
                         SettingControl::Slider {
                             value_label: &rd_str,
                             fraction: rd_frac,
@@ -4041,8 +4050,8 @@ impl Launcher {
                         },
                     ),
                     (
-                        "Simulation Distance",
-                        "Active entity and block-tick radius around the player",
+                        horizon_client::lang::get_or("Simulation Distance", "Simulation Distance"),
+                        horizon_client::lang::get_or("Active entity and block-tick radius around the player", "Active entity and block-tick radius around the player"),
                         SettingControl::Slider {
                             value_label: &sd_str,
                             fraction: sd_frac,
@@ -4051,8 +4060,8 @@ impl Launcher {
                         },
                     ),
                     (
-                        "Field of View (FOV)",
-                        "Horizontal camera view angle in degrees",
+                        horizon_client::lang::get_or("Field of View (FOV)", "Field of View (FOV)"),
+                        horizon_client::lang::get_or("Horizontal camera view angle in degrees", "Horizontal camera view angle in degrees"),
                         SettingControl::Slider {
                             value_label: &fov_str,
                             fraction: fov_frac,
@@ -4061,28 +4070,28 @@ impl Launcher {
                         },
                     ),
                     (
-                        "Graphics Quality Preset",
-                        "Cycle between Fast, Fancy and Fabulous rendering modes",
+                        horizon_client::lang::get_or("Graphics Quality Preset", "Graphics Quality Preset"),
+                        horizon_client::lang::get_or("Cycle between Fast, Fancy and Fabulous rendering modes", "Cycle between Fast, Fancy and Fabulous rendering modes"),
                         SettingControl::Button(&preset_str, Action::CycleGraphicsPreset, false),
                     ),
                     (
-                        "Max Framerate Ceiling",
-                        "Cap gameplay FPS to save power or unlock for high-refresh displays",
+                        horizon_client::lang::get_or("Max Framerate Ceiling", "Max Framerate Ceiling"),
+                        horizon_client::lang::get_or("Cap gameplay FPS to save power or unlock for high-refresh displays", "Cap gameplay FPS to save power or unlock for high-refresh displays"),
                         SettingControl::Button(&fps_str, Action::CycleMaxFps, false),
                     ),
                     (
-                        "Vertical Sync & Cloud Rendering",
-                        "Tap switch to toggle VSync, or cycle Clouds in in-game video options",
+                        horizon_client::lang::get_or("Vertical Sync & Cloud Rendering", "Vertical Sync & Cloud Rendering"),
+                        horizon_client::lang::get_or("Tap switch to toggle VSync, or cycle Clouds in in-game video options", "Tap switch to toggle VSync, or cycle Clouds in in-game video options"),
                         SettingControl::Toggle(opts.vsync, Action::ToggleVsync),
                     ),
                     (
-                        "Menu Background Blur",
-                        "Cached zero-lag backdrop blur when opening inventory or pause menus",
+                        horizon_client::lang::get_or("Menu Background Blur", "Menu Background Blur"),
+                        horizon_client::lang::get_or("Cached zero-lag backdrop blur when opening inventory or pause menus", "Cached zero-lag backdrop blur when opening inventory or pause menus"),
                         SettingControl::Toggle(opts.menu_blur > 0, Action::ToggleMenuBlur),
                     ),
                     (
-                        "Disable In-Game Animations",
-                        "Turn off animated block textures, chunk fade, hand bobbing & UI transitions completely",
+                        horizon_client::lang::get_or("Disable In-Game Animations", "Disable In-Game Animations"),
+                        horizon_client::lang::get_or("Turn off animated block textures, chunk fade, hand bobbing & UI transitions completely", "Turn off animated block textures, chunk fade, hand bobbing & UI transitions completely"),
                         SettingControl::Toggle(game_anim_off, Action::ToggleGameAnimations),
                     ),
                 ];
@@ -4143,17 +4152,17 @@ impl Launcher {
                 let profile_str = format!("Profile {} v", c.profile + 1);
                 let input_str = format!("{} v", c.input_host.label());
                 let worker_str = if c.worker_limit == 0 {
-                    "Auto (Big.LITTLE Safe) v".to_owned()
+                    horizon_client::lang::get_or("Auto (Big.LITTLE Safe) v", "Auto (Big.LITTLE Safe) v").to_owned()
                 } else {
                     format!("{} threads v", c.worker_limit)
                 };
                 let cache_str = if c.cache_budget_mib == 0 {
-                    "Default (80 MiB) v".to_owned()
+                    horizon_client::lang::get_or("Default (80 MiB) v", "Default (80 MiB) v").to_owned()
                 } else {
                     format!("{} MiB v", c.cache_budget_mib)
                 };
                 let server_str = if c.server.is_empty() {
-                    "Singleplayer / Tap to set".to_owned()
+                    horizon_client::lang::get_or("Singleplayer / Tap to set", "Singleplayer / Tap to set").to_owned()
                 } else {
                     c.server.clone()
                 };
@@ -4162,12 +4171,12 @@ impl Launcher {
                 let rows: [(&str, &str, SettingControl<'_>); 13] = [
                     (
                         "APPEARANCE, DPI SCALING & MOTION",
-                        "Material 3 Expressive theme studio, adaptive phone DPI scaling & animation toggles",
+                        horizon_client::lang::get_or("Material 3 Expressive theme studio, adaptive phone DPI scaling & animation toggles", "Material 3 Expressive theme studio, adaptive phone DPI scaling & animation toggles"),
                         SettingControl::SectionHeader(c.theme.preset.label(), Icon::Settings),
                     ),
                     (
-                        "Theme",
-                        "Preset themes, custom solid/accent colors, multi-stop gradients & light/dark mode",
+                        horizon_client::lang::get_or("Theme", "Theme"),
+                        horizon_client::lang::get_or("Preset themes, custom solid/accent colors, multi-stop gradients & light/dark mode", "Preset themes, custom solid/accent colors, multi-stop gradients & light/dark mode"),
                         SettingControl::Button(
                             &theme_str,
                             Action::SettingsCat(SettingsCategory::Theme),
@@ -4175,56 +4184,56 @@ impl Launcher {
                         ),
                     ),
                     (
-                        "Launcher UI scale (Phone DPI)",
-                        "Adapts launcher cards, text and buttons to your screen DPI",
+                        horizon_client::lang::get_or("Launcher UI scale (Phone DPI)", "Launcher UI scale (Phone DPI)"),
+                        horizon_client::lang::get_or("Adapts launcher cards, text and buttons to your screen DPI", "Adapts launcher cards, text and buttons to your screen DPI"),
                         SettingControl::Button(&ui_scale_str, Action::UiScale, false),
                     ),
                     (
-                        "Disable Launcher Animations",
-                        "Turn off page transitions, nav rail slides, shimmer & modal animations in launcher",
+                        horizon_client::lang::get_or("Disable Launcher Animations", "Disable Launcher Animations"),
+                        horizon_client::lang::get_or("Turn off page transitions, nav rail slides, shimmer & modal animations in launcher", "Turn off page transitions, nav rail slides, shimmer & modal animations in launcher"),
                         SettingControl::Toggle(
                             c.disable_launcher_animations,
                             Action::ToggleLauncherAnimations,
                         ),
                     ),
                     (
-                        "Disable In-Game Animations",
-                        "Turn off animated block textures, chunk fade, view bobbing & HUD animations in-game",
+                        horizon_client::lang::get_or("Disable In-Game Animations", "Disable In-Game Animations"),
+                        horizon_client::lang::get_or("Turn off animated block textures, chunk fade, view bobbing & HUD animations in-game", "Turn off animated block textures, chunk fade, view bobbing & HUD animations in-game"),
                         SettingControl::Toggle(game_anim_off, Action::ToggleGameAnimations),
                     ),
                     (
                         "PROFILES, WORKER THREADS & STORAGE",
-                        "Isolated game profiles, CPU worker threads, RAM cache & direct server launch",
+                        horizon_client::lang::get_or("Isolated game profiles, CPU worker threads, RAM cache & direct server launch", "Isolated game profiles, CPU worker threads, RAM cache & direct server launch"),
                         SettingControl::SectionHeader(&profile_str, Icon::Folder),
                     ),
                     (
-                        "Active game profile",
-                        "Each profile isolates its own worlds, mods and options",
+                        horizon_client::lang::get_or("Active game profile", "Active game profile"),
+                        horizon_client::lang::get_or("Each profile isolates its own worlds, mods and options", "Each profile isolates its own worlds, mods and options"),
                         SettingControl::Button(&profile_str, Action::Profile, false),
                     ),
                     (
-                        "Open directly in the game",
-                        "Start in the selected instance. H > Launcher and the pause menu can still open the launcher",
+                        horizon_client::lang::get_or("Open directly in the game", "Open directly in the game"),
+                        horizon_client::lang::get_or("Start in the selected instance. H > Launcher and the pause menu can still open the launcher", "Start in the selected instance. H > Launcher and the pause menu can still open the launcher"),
                         SettingControl::Toggle(c.open_directly, Action::ToggleOpenDirectly),
                     ),
                     (
-                        "Input host mode",
-                        "Switch between touchscreen HUD and physical mouse/keyboard",
+                        horizon_client::lang::get_or("Input host mode", "Input host mode"),
+                        horizon_client::lang::get_or("Switch between touchscreen HUD and physical mouse/keyboard", "Switch between touchscreen HUD and physical mouse/keyboard"),
                         SettingControl::Button(&input_str, Action::InputHost, false),
                     ),
                     (
-                        "Chunk worker thread ceiling",
-                        "Background worldgen and chunk meshing worker limit",
+                        horizon_client::lang::get_or("Chunk worker thread ceiling", "Chunk worker thread ceiling"),
+                        horizon_client::lang::get_or("Background worldgen and chunk meshing worker limit", "Background worldgen and chunk meshing worker limit"),
                         SettingControl::Button(&worker_str, Action::WorkerLimit, false),
                     ),
                     (
-                        "Reusable RAM cache budget",
-                        "Pooled audio & mesh buffer cache ceiling",
+                        horizon_client::lang::get_or("Reusable RAM cache budget", "Reusable RAM cache budget"),
+                        horizon_client::lang::get_or("Pooled audio & mesh buffer cache ceiling", "Pooled audio & mesh buffer cache ceiling"),
                         SettingControl::Button(&cache_str, Action::CacheBudget, false),
                     ),
                     (
-                        "Quick-join server address",
-                        "Optional server IP:port to connect immediately on Play",
+                        horizon_client::lang::get_or("Quick-join server address", "Quick-join server address"),
+                        horizon_client::lang::get_or("Optional server IP:port to connect immediately on Play", "Optional server IP:port to connect immediately on Play"),
                         SettingControl::TextField {
                             label: "SERVER IP",
                             value: &c.server,
@@ -4234,9 +4243,9 @@ impl Launcher {
                         },
                     ),
                     (
-                        "Open game & world folders",
-                        "Manage saves, resource packs and mods in Android Files",
-                        SettingControl::Button("Open Files", Action::GameFiles, false),
+                        horizon_client::lang::get_or("Open game & world folders", "Open game & world folders"),
+                        horizon_client::lang::get_or("Manage saves, resource packs and mods in Android Files", "Manage saves, resource packs and mods in Android Files"),
+                        SettingControl::Button(horizon_client::lang::get_or("Open Files", "Open Files"), Action::GameFiles, false),
                     ),
                 ];
 
@@ -4351,7 +4360,7 @@ impl Launcher {
                     let p_title = format!(
                         "{} • {} • {}",
                         theme_cfg.preset.label(),
-                        if resolved.is_light { "Light" } else { "Dark" },
+                        if resolved.is_light { horizon_client::lang::get_or("Light", "Light") } else { horizon_client::lang::get_or("Dark", "Dark") },
                         theme_cfg.background_mode.label()
                     );
                     let fit_pt =
@@ -4393,7 +4402,7 @@ impl Launcher {
                         ui,
                         &mut self.targets,
                         reset_r,
-                        "Reset Default",
+                        horizon_client::lang::get_or("Reset Default", "Reset Default"),
                         Action::ResetTheme,
                         false,
                     );
@@ -4406,8 +4415,8 @@ impl Launcher {
                     let half = (content_w - 10.0) * 0.5;
                     let quarter = (half - 6.0) * 0.5;
                     for (i, (lbl, mode, active)) in [
-                        ("Dark", ThemeAppearance::Dark, !resolved.is_light),
-                        ("Light", ThemeAppearance::Light, resolved.is_light),
+                        (horizon_client::lang::get_or("Dark", "Dark"), ThemeAppearance::Dark, !resolved.is_light),
+                        (horizon_client::lang::get_or("Light", "Light"), ThemeAppearance::Light, resolved.is_light),
                     ]
                     .into_iter()
                     .enumerate()
@@ -4426,12 +4435,12 @@ impl Launcher {
                     }
                     for (i, (lbl, bmode, active)) in [
                         (
-                            "Solid BG",
+                            horizon_client::lang::get_or("Solid BG", "Solid BG"),
                             BackgroundMode::Solid,
                             theme_cfg.background_mode == BackgroundMode::Solid,
                         ),
                         (
-                            "Gradient BG",
+                            horizon_client::lang::get_or("Gradient BG", "Gradient BG"),
                             BackgroundMode::Gradient,
                             theme_cfg.background_mode == BackgroundMode::Gradient,
                         ),
@@ -4722,21 +4731,21 @@ impl Launcher {
                     let stop_w = ((content_w - 36.0) / 3.0).max(80.0);
                     for (i, (lbl, hex_val, field_name)) in [
                         (
-                            "Stop 1",
+                            horizon_client::lang::get_or("Stop 1", "Stop 1"),
                             theme_cfg.gradient_start_hex.as_str(),
                             "theme_grad_start",
                         ),
                         (
                             if theme_cfg.use_three_stops {
-                                "Mid Stop"
+                                horizon_client::lang::get_or("Mid Stop", "Mid Stop")
                             } else {
-                                "Mid (Off)"
+                                horizon_client::lang::get_or("Mid (Off)", "Mid (Off)")
                             },
                             theme_cfg.gradient_mid_hex.as_str(),
                             "theme_grad_mid",
                         ),
                         (
-                            "End Stop",
+                            horizon_client::lang::get_or("End Stop", "End Stop"),
                             theme_cfg.gradient_end_hex.as_str(),
                             "theme_grad_end",
                         ),
@@ -4830,10 +4839,10 @@ impl Launcher {
                 let editor_title = format!("{} Control Editor", sys_name);
                 let editor_sub = match style {
                     crate::ha_launcher::client::touch::ControlStyle::Mcpe => {
-                        "Customize MCPE controls with exact Minecraft sprites, size, opacity & alignment"
+                        horizon_client::lang::get_or("Customize MCPE controls with exact Minecraft sprites, size, opacity & alignment", "Customize MCPE controls with exact Minecraft sprites, size, opacity & alignment")
                     }
                     crate::ha_launcher::client::touch::ControlStyle::GoyControl => {
-                        "Customize GoyControl buttons, custom keys, toggle, swipe & pass-through"
+                        horizon_client::lang::get_or("Customize GoyControl buttons, custom keys, toggle, swipe & pass-through", "Customize GoyControl buttons, custom keys, toggle, swipe & pass-through")
                     }
                 };
                 let preset_row_title = format!("{} Preset Selector", sys_name);
@@ -4841,32 +4850,32 @@ impl Launcher {
                 let copy_btn_label = if self.catalog.editing == Some("profile_name")
                     && self.catalog.config.preset_edit_mode == "copy"
                 {
-                    "Typing Name..."
+                    horizon_client::lang::get_or("Typing Name...", "Typing Name...")
                 } else if self.catalog.editing == Some("profile_desc")
                     && self.catalog.config.preset_edit_mode == "copy"
                 {
-                    "Typing Desc..."
+                    horizon_client::lang::get_or("Typing Desc...", "Typing Desc...")
                 } else {
-                    "Copy Preset"
+                    horizon_client::lang::get_or("Copy Preset", "Copy Preset")
                 };
                 let edit_meta_title = format!("Edit {} Preset Name & Description", sys_name);
                 let edit_meta_sub = if touch_cfg.is_default_preset() {
-                    "Default layout is protected and cannot be renamed or overwritten; use Copy Preset"
+                    horizon_client::lang::get_or("Default layout is protected and cannot be renamed or overwritten; use Copy Preset", "Default layout is protected and cannot be renamed or overwritten; use Copy Preset")
                 } else {
-                    "Pencil / Edit: rename or update description of the selected user preset"
+                    horizon_client::lang::get_or("Pencil / Edit: rename or update description of the selected user preset", "Pencil / Edit: rename or update description of the selected user preset")
                 };
                 let edit_meta_btn = if touch_cfg.is_default_preset() {
-                    "Protected"
+                    horizon_client::lang::get_or("Protected", "Protected")
                 } else if self.catalog.editing == Some("profile_name")
                     && self.catalog.config.preset_edit_mode == "edit"
                 {
-                    "Typing Name..."
+                    horizon_client::lang::get_or("Typing Name...", "Typing Name...")
                 } else if self.catalog.editing == Some("profile_desc")
                     && self.catalog.config.preset_edit_mode == "edit"
                 {
-                    "Typing Desc..."
+                    horizon_client::lang::get_or("Typing Desc...", "Typing Desc...")
                 } else {
-                    "Edit (Pencil)"
+                    horizon_client::lang::get_or("Edit (Pencil)", "Edit (Pencil)")
                 };
 
                 let mouse_sens = format!("{:.0}%", opts.sensitivity * 200.0);
@@ -4888,14 +4897,14 @@ impl Launcher {
                 let rows: [(&str, &str, SettingControl<'_>); 27] = [
                     (
                         "LAYOUT EDITOR & PRESET PROFILES",
-                        "Visual HUD canvas editor, multi-profile switcher, duplication & JSON export",
+                        horizon_client::lang::get_or("Visual HUD canvas editor, multi-profile switcher, duplication & JSON export", "Visual HUD canvas editor, multi-profile switcher, duplication & JSON export"),
                         SettingControl::SectionHeader(sys_name, Icon::MenuEquals),
                     ),
                     (
                         &editor_title,
                         editor_sub,
                         SettingControl::Button(
-                            "Customize Controls",
+                            horizon_client::lang::get_or("Customize Controls", "Customize Controls"),
                             Action::OpenControlEditor,
                             true,
                         ),
@@ -4907,12 +4916,12 @@ impl Launcher {
                     ),
                     (
                         &copy_title,
-                        "Duplicate selected layout into a new independent preset with custom name & description",
+                        horizon_client::lang::get_or("Duplicate selected layout into a new independent preset with custom name & description", "Duplicate selected layout into a new independent preset with custom name & description"),
                         if self.catalog.editing == Some("profile_name") {
                             SettingControl::TextField {
                                 label: "PRESET NAME",
                                 value: &self.catalog.config.custom_profile_name,
-                                hint: "Enter preset name",
+                                hint: horizon_client::lang::get_or("Enter preset name", "Enter preset name"),
                                 active: true,
                                 action: Action::Field("profile_name"),
                             }
@@ -4927,7 +4936,7 @@ impl Launcher {
                             SettingControl::TextField {
                                 label: "DESCRIPTION",
                                 value: &self.catalog.config.custom_profile_desc,
-                                hint: "Enter preset description",
+                                hint: horizon_client::lang::get_or("Enter preset description", "Enter preset description"),
                                 active: true,
                                 action: Action::Field("profile_desc"),
                             }
@@ -4940,18 +4949,18 @@ impl Launcher {
                         },
                     ),
                     (
-                        "Export Active Control Preset",
-                        "Export current layout JSON to Horizon Reports & controls folder",
-                        SettingControl::Button("Export JSON", Action::ExportControlProfile, false),
+                        horizon_client::lang::get_or("Export Active Control Preset", "Export Active Control Preset"),
+                        horizon_client::lang::get_or("Export current layout JSON to Horizon Reports & controls folder", "Export current layout JSON to Horizon Reports & controls folder"),
+                        SettingControl::Button(horizon_client::lang::get_or("Export JSON", "Export JSON"), Action::ExportControlProfile, false),
                     ),
                     (
                         "CAMERA LOOK & AIMING SENSITIVITY",
-                        "Touch swipe responsiveness, 3D look multiplier, Y-axis inversion & crosshair mode",
+                        horizon_client::lang::get_or("Touch swipe responsiveness, 3D look multiplier, Y-axis inversion & crosshair mode", "Touch swipe responsiveness, 3D look multiplier, Y-axis inversion & crosshair mode"),
                         SettingControl::SectionHeader("CAMERA", Icon::Shaders),
                     ),
                     (
-                        "Sensitivity (Touch Look Speed)",
-                        "Direct finger drag camera rotation speed multiplier",
+                        horizon_client::lang::get_or("Sensitivity (Touch Look Speed)", "Sensitivity (Touch Look Speed)"),
+                        horizon_client::lang::get_or("Direct finger drag camera rotation speed multiplier", "Direct finger drag camera rotation speed multiplier"),
                         SettingControl::Slider {
                             value_label: &touch_sens,
                             fraction: touch_sens_frac,
@@ -4970,23 +4979,23 @@ impl Launcher {
                         },
                     ),
                     (
-                        "Invert Y-Axis",
-                        "Inverts vertical camera look direction for touch and mouse",
+                        horizon_client::lang::get_or("Invert Y-Axis", "Invert Y-Axis"),
+                        horizon_client::lang::get_or("Inverts vertical camera look direction for touch and mouse", "Inverts vertical camera look direction for touch and mouse"),
                         SettingControl::Toggle(invert_y_active, Action::ToggleInvertY),
                     ),
                     (
-                        "Split Touch (Aim & Look)",
-                        "Separates aiming and camera look with center crosshair",
+                        horizon_client::lang::get_or("Split Touch (Aim & Look)", "Split Touch (Aim & Look)"),
+                        horizon_client::lang::get_or("Separates aiming and camera look with center crosshair", "Separates aiming and camera look with center crosshair"),
                         SettingControl::Toggle(touch_cfg.crosshair(), Action::ToggleSplitControls),
                     ),
                     (
                         "MOVEMENT, HUD SCALE & ERGONOMICS",
-                        "On-screen button scale, thumbstick vs D-Pad, active touch zone & haptics",
+                        horizon_client::lang::get_or("On-screen button scale, thumbstick vs D-Pad, active touch zone & haptics", "On-screen button scale, thumbstick vs D-Pad, active touch zone & haptics"),
                         SettingControl::SectionHeader("ERGONOMICS", Icon::Settings),
                     ),
                     (
-                        "HUD Button Scale",
-                        "Global size multiplier for on-screen touch buttons",
+                        horizon_client::lang::get_or("HUD Button Scale", "HUD Button Scale"),
+                        horizon_client::lang::get_or("Global size multiplier for on-screen touch buttons", "Global size multiplier for on-screen touch buttons"),
                         SettingControl::Slider {
                             value_label: &btn_scale,
                             fraction: btn_scale_frac,
@@ -4995,72 +5004,72 @@ impl Launcher {
                         },
                     ),
                     (
-                        "Movement Control Scheme",
-                        "Switch between classic D-Pad buttons and analog thumb joystick",
+                        horizon_client::lang::get_or("Movement Control Scheme", "Movement Control Scheme"),
+                        horizon_client::lang::get_or("Switch between classic D-Pad buttons and analog thumb joystick", "Switch between classic D-Pad buttons and analog thumb joystick"),
                         SettingControl::Button(scheme_str, Action::ToggleControlScheme, false),
                     ),
                     (
-                        "Joystick Active Touch Zone",
-                        "Choose Follow Finger, Mid-Bottom Left, Right Side, or Fixed origin",
+                        horizon_client::lang::get_or("Joystick Active Touch Zone", "Joystick Active Touch Zone"),
+                        horizon_client::lang::get_or("Choose Follow Finger, Mid-Bottom Left, Right Side, or Fixed origin", "Choose Follow Finger, Mid-Bottom Left, Right Side, or Fixed origin"),
                         SettingControl::Button(zone_str, Action::CycleJoystickZone, false),
                     ),
                     (
-                        "Left-Handed HUD Mirroring",
-                        "Mirrors movement controls to the right side of the screen",
+                        horizon_client::lang::get_or("Left-Handed HUD Mirroring", "Left-Handed HUD Mirroring"),
+                        horizon_client::lang::get_or("Mirrors movement controls to the right side of the screen", "Mirrors movement controls to the right side of the screen"),
                         SettingControl::Toggle(touch_cfg.left_handed, Action::ToggleLeftHanded),
                     ),
                     (
-                        "Toggle Sprint Mode",
-                        "Latch sprint on a single tap instead of holding the sprint button",
+                        horizon_client::lang::get_or("Toggle Sprint Mode", "Toggle Sprint Mode"),
+                        horizon_client::lang::get_or("Latch sprint on a single tap instead of holding the sprint button", "Latch sprint on a single tap instead of holding the sprint button"),
                         SettingControl::Toggle(sprint_latch_active, Action::ToggleSprintLatch),
                     ),
                     (
-                        "Inventory Walk Controls",
-                        "Keep movement controls active while inventory or chest screens are open",
+                        horizon_client::lang::get_or("Inventory Walk Controls", "Inventory Walk Controls"),
+                        horizon_client::lang::get_or("Keep movement controls active while inventory or chest screens are open", "Keep movement controls active while inventory or chest screens are open"),
                         SettingControl::Toggle(
                             touch_cfg.inventory_controls,
                             Action::ToggleInventoryControls,
                         ),
                     ),
                     (
-                        "Auto-Jump",
-                        "Automatically jump when walking up 1-block terrain steps",
+                        horizon_client::lang::get_or("Auto-Jump", "Auto-Jump"),
+                        horizon_client::lang::get_or("Automatically jump when walking up 1-block terrain steps", "Automatically jump when walking up 1-block terrain steps"),
                         SettingControl::Toggle(opts.auto_jump, Action::ToggleAutoJump),
                     ),
                     (
-                        "Control Hub Button",
-                        "Show the top-left control menu button",
+                        horizon_client::lang::get_or("Control Hub Button", "Control Hub Button"),
+                        horizon_client::lang::get_or("Show the top-left control menu button", "Show the top-left control menu button"),
                         SettingControl::Toggle(
                             touch_cfg.show_control_hub,
                             Action::ToggleControlHub,
                         ),
                     ),
                     (
-                        "UI Vibration",
-                        "Vibration when pressing interface buttons",
+                        horizon_client::lang::get_or("UI Vibration", "UI Vibration"),
+                        horizon_client::lang::get_or("Vibration when pressing interface buttons", "Vibration when pressing interface buttons"),
                         SettingControl::Toggle(touch_cfg.ui_vibrate, Action::ToggleTouchUiVibrate),
                     ),
                     (
-                        "Gameplay Vibration",
-                        "Vibration for damage and block breaking",
+                        horizon_client::lang::get_or("Gameplay Vibration", "Gameplay Vibration"),
+                        horizon_client::lang::get_or("Vibration for damage and block breaking", "Vibration for damage and block breaking"),
                         SettingControl::Toggle(touch_cfg.vibrate, Action::ToggleTouchVibrate),
                     ),
                     (
                         "VIRTUAL MOUSE & GYROSCOPE MOTION",
-                        "Windows 11 menu cursor scaling and motion-assisted gyroscope aiming",
+                        horizon_client::lang::get_or("Windows 11 menu cursor scaling and motion-assisted gyroscope aiming", "Windows 11 menu cursor scaling and motion-assisted gyroscope aiming"),
                         SettingControl::SectionHeader("POINTER & GYRO", Icon::Play),
                     ),
                     (
-                        "Authoritative Virtual Mouse",
-                        "Enable virtual mouse pointer in menus and on-demand in GoyControl",
+                        horizon_client::lang::get_or("Authoritative Virtual Mouse", "Authoritative Virtual Mouse"),
+                        horizon_client::lang::get_or("Enable virtual mouse pointer in menus and on-demand in GoyControl", "Enable virtual mouse pointer in menus and on-demand in GoyControl"),
                         SettingControl::Toggle(
                             touch_cfg.virtual_mouse_enabled,
                             Action::ToggleVirtualMouseEnabled,
                         ),
                     ),
                     (
-                        "Virtual Cursor Scale",
-                        "Adjust size of the Windows 11 virtual mouse arrow in menus",
+                        horizon_client::lang::get_or("Virtual Cursor Scale", "Virtual Cursor Scale"),
+                        horizon_client::lang::get_or("Adjust size of the Windows 11 virtual mouse arrow in menus", "Adjust size of the Windows 11 virtual mouse arrow in menus"),
                         SettingControl::Slider {
                             value_label: &ptr_size,
                             fraction: ptr_size_frac,
@@ -5069,13 +5078,13 @@ impl Launcher {
                         },
                     ),
                     (
-                        "Gyroscope Aiming",
-                        "Tilt your phone for fine bow and crosshair aiming adjustments",
+                        horizon_client::lang::get_or("Gyroscope Aiming", "Gyroscope Aiming"),
+                        horizon_client::lang::get_or("Tilt your phone for fine bow and crosshair aiming adjustments", "Tilt your phone for fine bow and crosshair aiming adjustments"),
                         SettingControl::Toggle(touch_cfg.gyroscope, Action::ToggleGyro),
                     ),
                     (
-                        "Gyroscope Sensitivity",
-                        "Fine-tune motion tilt speed when Gyroscope Aiming is enabled",
+                        horizon_client::lang::get_or("Gyroscope Sensitivity", "Gyroscope Sensitivity"),
+                        horizon_client::lang::get_or("Fine-tune motion tilt speed when Gyroscope Aiming is enabled", "Fine-tune motion tilt speed when Gyroscope Aiming is enabled"),
                         SettingControl::Slider {
                             value_label: &gyro_sens,
                             fraction: gyro_sens_frac,
@@ -5098,8 +5107,8 @@ impl Launcher {
                     let half_w = (content_w - 10.0) * 0.5;
                     for (i, (title, sub, badge, selected, action)) in [
                         (
-                            "MCPE (Default)",
-                            "Vanilla touch sprites, D-Pad & thumbstick",
+                            horizon_client::lang::get_or("MCPE (Default)", "MCPE (Default)"),
+                            horizon_client::lang::get_or("Vanilla touch sprites, D-Pad & thumbstick", "Vanilla touch sprites, D-Pad & thumbstick"),
                             "CLASSIC HUD",
                             is_mcpe,
                             Action::SelectControlMode(
@@ -5107,8 +5116,8 @@ impl Launcher {
                             ),
                         ),
                         (
-                            "GoyControl",
-                            "Custom multi-bind HUD, macros & pass-through",
+                            horizon_client::lang::get_or("GoyControl", "GoyControl"),
+                            horizon_client::lang::get_or("Custom multi-bind HUD, macros & pass-through", "Custom multi-bind HUD, macros & pass-through"),
                             "PRO OVERLAY",
                             is_goy,
                             Action::SelectControlMode(
@@ -5239,70 +5248,70 @@ impl Launcher {
                 self.list_view = Some([list_top, list_bottom, max_scroll]);
 
                 let active_mode_badge = if c.super_perf_mode {
-                    "Super Perf Active"
+                    horizon_client::lang::get_or("Super Perf Active", "Super Perf Active")
                 } else if c.battery_perf_mode {
-                    "Battery Saver Active"
+                    horizon_client::lang::get_or("Battery Saver Active", "Battery Saver Active")
                 } else if c.max_fps_mode {
                     "260 FPS Uncapped"
                 } else {
-                    "Balanced Default"
+                    horizon_client::lang::get_or("Balanced Default", "Balanced Default")
                 };
 
                 let rows: [(&str, &str, SettingControl<'_>); 10] = [
                     (
                         "PERFORMANCE PROFILES & GPU PIPELINE",
-                        "Hardware-tuned presets for Mali-G52 / Adreno GPUs and high-refresh displays",
+                        horizon_client::lang::get_or("Hardware-tuned presets for Mali-G52 / Adreno GPUs and high-refresh displays", "Hardware-tuned presets for Mali-G52 / Adreno GPUs and high-refresh displays"),
                         SettingControl::SectionHeader(active_mode_badge, Icon::Flask),
                     ),
                     (
-                        "Super Performance Mode",
-                        "Aggressive chunk culling, fast clouds, minimal particles & Vulkan batching",
+                        horizon_client::lang::get_or("Super Performance Mode", "Super Performance Mode"),
+                        horizon_client::lang::get_or("Aggressive chunk culling, fast clouds, minimal particles & Vulkan batching", "Aggressive chunk culling, fast clouds, minimal particles & Vulkan batching"),
                         SettingControl::Toggle(c.super_perf_mode, Action::ToggleSuperPerf),
                     ),
                     (
-                        "Battery Performance Mode",
-                        "Caps framerate to 60 FPS with VSync and reduces background worker wakeups",
+                        horizon_client::lang::get_or("Battery Performance Mode", "Battery Performance Mode"),
+                        horizon_client::lang::get_or("Caps framerate to 60 FPS with VSync and reduces background worker wakeups", "Caps framerate to 60 FPS with VSync and reduces background worker wakeups"),
                         SettingControl::Toggle(c.battery_perf_mode, Action::ToggleBatteryPerf),
                     ),
                     (
-                        "Max FPS Mode (Uncapped 260 FPS)",
-                        "Disables VSync, unlocks framerate ceiling and requests maximum display Hz",
+                        horizon_client::lang::get_or("Max FPS Mode (Uncapped 260 FPS)", "Max FPS Mode (Uncapped 260 FPS)"),
+                        horizon_client::lang::get_or("Disables VSync, unlocks framerate ceiling and requests maximum display Hz", "Disables VSync, unlocks framerate ceiling and requests maximum display Hz"),
                         SettingControl::Toggle(c.max_fps_mode, Action::ToggleMaxFpsMode),
                     ),
                     (
                         "LOW-LATENCY INPUT, STREAMING & SCHEDULER",
-                        "Direct touch dispatch, 4 MiB chunk upload budget boost & Android ADPF thermal hints",
-                        SettingControl::SectionHeader("Engine Tuning", Icon::Gear),
+                        horizon_client::lang::get_or("Direct touch dispatch, 4 MiB chunk upload budget boost & Android ADPF thermal hints", "Direct touch dispatch, 4 MiB chunk upload budget boost & Android ADPF thermal hints"),
+                        SettingControl::SectionHeader(horizon_client::lang::get_or("Engine Tuning", "Engine Tuning"), Icon::Gear),
                     ),
                     (
-                        "Zero-Latency Touch Pipeline",
-                        "Bypasses redundant pointer filtering for instant camera & virtual mouse response",
+                        horizon_client::lang::get_or("Zero-Latency Touch Pipeline", "Zero-Latency Touch Pipeline"),
+                        horizon_client::lang::get_or("Bypasses redundant pointer filtering for instant camera & virtual mouse response", "Bypasses redundant pointer filtering for instant camera & virtual mouse response"),
                         SettingControl::Toggle(
                             c.zero_latency_touch,
                             Action::ToggleZeroLatencyTouch,
                         ),
                     ),
                     (
-                        "Fast Chunk Mesh Upload Boost",
-                        "Increases per-frame GPU upload budget to 4 MiB to eliminate movement stutter",
+                        horizon_client::lang::get_or("Fast Chunk Mesh Upload Boost", "Fast Chunk Mesh Upload Boost"),
+                        horizon_client::lang::get_or("Increases per-frame GPU upload budget to 4 MiB to eliminate movement stutter", "Increases per-frame GPU upload budget to 4 MiB to eliminate movement stutter"),
                         SettingControl::Toggle(c.fast_chunk_upload, Action::ToggleFastChunkUpload),
                     ),
                     (
-                        "Android ADPF Performance Hints",
-                        "Sends real-time CPU thermal & frame-work hints to the Android scheduler",
+                        horizon_client::lang::get_or("Android ADPF Performance Hints", "Android ADPF Performance Hints"),
+                        horizon_client::lang::get_or("Sends real-time CPU thermal & frame-work hints to the Android scheduler", "Sends real-time CPU thermal & frame-work hints to the Android scheduler"),
                         SettingControl::Toggle(
                             c.device.performance_hints,
                             Action::PerformanceHints,
                         ),
                     ),
                     (
-                        "Detailed GPU Pass Profiling",
-                        "Records per-pass GPU timings in diagnostic reports (adds minor overhead)",
+                        horizon_client::lang::get_or("Detailed GPU Pass Profiling", "Detailed GPU Pass Profiling"),
+                        horizon_client::lang::get_or("Records per-pass GPU timings in diagnostic reports (adds minor overhead)", "Records per-pass GPU timings in diagnostic reports (adds minor overhead)"),
                         SettingControl::Toggle(c.device.gpu_profile, Action::GpuProfile),
                     ),
                     (
-                        "Experimental Leaf Culling",
-                        "Simplifies dense foliage and changes its appearance; applies on next Play",
+                        horizon_client::lang::get_or("Experimental Leaf Culling", "Experimental Leaf Culling"),
+                        horizon_client::lang::get_or("Simplifies dense foliage and changes its appearance; applies on next Play", "Simplifies dense foliage and changes its appearance; applies on next Play"),
                         SettingControl::Toggle(
                             c.experimental_leaf_culling,
                             Action::ToggleExperimentalLeaves,
@@ -5345,46 +5354,46 @@ impl Launcher {
 
                 let has_err = self.home.join("android-error.txt").is_file();
                 let health_badge = if has_err {
-                    "Crash Log Recorded"
+                    horizon_client::lang::get_or("Crash Log Recorded", "Crash Log Recorded")
                 } else {
-                    "Runtime Healthy"
+                    horizon_client::lang::get_or("Runtime Healthy", "Runtime Healthy")
                 };
 
                 let rows: [(&str, &str, SettingControl<'_>); 7] = [
                     (
                         "RUNTIME HEALTH & CRASH DIAGNOSTICS",
-                        "Live engine summary, shader/Vulkan health check, crash logs & ZIP bundle export",
+                        horizon_client::lang::get_or("Live engine summary, shader/Vulkan health check, crash logs & ZIP bundle export", "Live engine summary, shader/Vulkan health check, crash logs & ZIP bundle export"),
                         SettingControl::SectionHeader(health_badge, Icon::Terminal),
                     ),
                     (
-                        "Inspect logs & device summary",
-                        "Open interactive Diagnostics & Runtime Health Summary dialog",
-                        SettingControl::Button("View Summary", Action::Logs, true),
+                        horizon_client::lang::get_or("Inspect logs & device summary", "Inspect logs & device summary"),
+                        horizon_client::lang::get_or("Open interactive Diagnostics & Runtime Health Summary dialog", "Open interactive Diagnostics & Runtime Health Summary dialog"),
+                        SettingControl::Button(horizon_client::lang::get_or("View Summary", "View Summary"), Action::Logs, true),
                     ),
                     (
-                        "Export diagnostic report (.zip)",
-                        "Packages logs and device info into a local ZIP for troubleshooting",
-                        SettingControl::Button("Export ZIP", Action::ExportDiagnostics, false),
+                        horizon_client::lang::get_or("Export diagnostic report (.zip)", "Export diagnostic report (.zip)"),
+                        horizon_client::lang::get_or("Packages logs and device info into a local ZIP for troubleshooting", "Packages logs and device info into a local ZIP for troubleshooting"),
+                        SettingControl::Button(horizon_client::lang::get_or("Export ZIP", "Export ZIP"), Action::ExportDiagnostics, false),
                     ),
                     (
                         "FRAME TELEMETRY & WORLD STORAGE",
-                        "JSONL frame-time recorder and direct access to profile world saves",
-                        SettingControl::SectionHeader("Telemetry & Saves", Icon::Folder),
+                        horizon_client::lang::get_or("JSONL frame-time recorder and direct access to profile world saves", "JSONL frame-time recorder and direct access to profile world saves"),
+                        SettingControl::SectionHeader(horizon_client::lang::get_or("Telemetry & Saves", "Telemetry & Saves"), Icon::Folder),
                     ),
                     (
-                        "Record gameplay performance",
-                        "Captures frame-time and chunk-build telemetry during Play (up to 30 min)",
+                        horizon_client::lang::get_or("Record gameplay performance", "Record gameplay performance"),
+                        horizon_client::lang::get_or("Captures frame-time and chunk-build telemetry during Play (up to 30 min)", "Captures frame-time and chunk-build telemetry during Play (up to 30 min)"),
                         SettingControl::Toggle(c.record_performance, Action::RecordPerformance),
                     ),
                     (
-                        "Export raw performance data (.jsonl)",
-                        "Share or inspect recorded frame telemetry in Android Files",
-                        SettingControl::Button("Export JSONL", Action::ExportPerformance, false),
+                        horizon_client::lang::get_or("Export raw performance data (.jsonl)", "Export raw performance data (.jsonl)"),
+                        horizon_client::lang::get_or("Share or inspect recorded frame telemetry in Android Files", "Share or inspect recorded frame telemetry in Android Files"),
+                        SettingControl::Button(horizon_client::lang::get_or("Export JSONL", "Export JSONL"), Action::ExportPerformance, false),
                     ),
                     (
-                        "World backup & file manager",
-                        "Open worlds folder in system Files to back up or copy saves",
-                        SettingControl::Button("World Files", Action::WorldFiles, false),
+                        horizon_client::lang::get_or("World backup & file manager", "World backup & file manager"),
+                        horizon_client::lang::get_or("Open worlds folder in system Files to back up or copy saves", "Open worlds folder in system Files to back up or copy saves"),
+                        SettingControl::Button(horizon_client::lang::get_or("World Files", "World Files"), Action::WorldFiles, false),
                     ),
                 ];
 
@@ -5489,7 +5498,7 @@ impl Launcher {
                 self.install_cancelled.store(true, Ordering::Relaxed);
                 self.install_paused.store(false, Ordering::Relaxed);
                 self.worker = None;
-                self.catalog.status = "Game preparation cancelled.".into();
+                self.catalog.status = horizon_client::lang::get_or("Game preparation cancelled.", "Game preparation cancelled.").into();
             }
             Some(Action::PauseCatalogDownload) => {
                 self.catalog.toggle_pause();
@@ -5523,12 +5532,12 @@ impl Launcher {
                         slug: (*id).to_owned(),
                         title: (*title).to_owned(),
                         summary: (*desc).to_owned(),
-                        author: "Horizon Built-in".into(),
+                        author: horizon_client::lang::get_or("Horizon Built-in", "Horizon Built-in").into(),
                         downloads: 0,
                         icon: None,
                         page: String::new(),
                         kind: crate::ha_launcher::browser::Kind::Mod,
-                        license: "MIT / Apache-2.0".into(),
+                        license: horizon_client::lang::get_or("MIT / Apache-2.0", "MIT / Apache-2.0").into(),
                         game_versions: vec![crate::ha_launcher::browser::GAME.into()],
                         loaders: vec!["horizon".into()],
                     };
@@ -5642,9 +5651,9 @@ impl Launcher {
                 self.catalog.config.save(&self.home)?;
                 self.catalog.config.apply_experimental_to_game(&self.home);
                 self.catalog.status = if self.catalog.config.super_perf_mode {
-                    "Super Performance Mode enabled: fast chunk culling, minimal particles & Vulkan batching."
+                    horizon_client::lang::get_or("Super Performance Mode enabled: fast chunk culling, minimal particles & Vulkan batching.", "Super Performance Mode enabled: fast chunk culling, minimal particles & Vulkan batching.")
                 } else {
-                    "Super Performance Mode disabled."
+                    horizon_client::lang::get_or("Super Performance Mode disabled.", "Super Performance Mode disabled.")
                 }
                 .into();
             }
@@ -5660,9 +5669,9 @@ impl Launcher {
                 self.catalog.config.save(&self.home)?;
                 self.catalog.config.apply_experimental_to_game(&self.home);
                 self.catalog.status = if self.catalog.config.battery_perf_mode {
-                    "Battery Performance Mode enabled: 60 FPS cap with VSync and balanced workers."
+                    horizon_client::lang::get_or("Battery Performance Mode enabled: 60 FPS cap with VSync and balanced workers.", "Battery Performance Mode enabled: 60 FPS cap with VSync and balanced workers.")
                 } else {
-                    "Battery Performance Mode disabled."
+                    horizon_client::lang::get_or("Battery Performance Mode disabled.", "Battery Performance Mode disabled.")
                 }
                 .into();
             }
@@ -5674,9 +5683,9 @@ impl Launcher {
                 self.catalog.config.save(&self.home)?;
                 self.catalog.config.apply_experimental_to_game(&self.home);
                 self.catalog.status = if self.catalog.config.max_fps_mode {
-                    "Max FPS Mode enabled: 260 FPS uncapped with VSync disabled."
+                    horizon_client::lang::get_or("Max FPS Mode enabled: 260 FPS uncapped with VSync disabled.", "Max FPS Mode enabled: 260 FPS uncapped with VSync disabled.")
                 } else {
-                    "Max FPS Mode disabled."
+                    horizon_client::lang::get_or("Max FPS Mode disabled.", "Max FPS Mode disabled.")
                 }
                 .into();
             }
@@ -5684,9 +5693,9 @@ impl Launcher {
                 self.catalog.config.zero_latency_touch = !self.catalog.config.zero_latency_touch;
                 self.catalog.config.save(&self.home)?;
                 self.catalog.status = if self.catalog.config.zero_latency_touch {
-                    "Zero-Latency Touch Pipeline active."
+                    horizon_client::lang::get_or("Zero-Latency Touch Pipeline active.", "Zero-Latency Touch Pipeline active.")
                 } else {
-                    "Standard touch pipeline active."
+                    horizon_client::lang::get_or("Standard touch pipeline active.", "Standard touch pipeline active.")
                 }
                 .into();
             }
@@ -5699,9 +5708,9 @@ impl Launcher {
                 self.catalog.config.save(&self.home)?;
                 self.catalog.config.apply_experimental_to_game(&self.home);
                 self.catalog.status = if self.catalog.config.fast_chunk_upload {
-                    "Fast Chunk Mesh Upload Boost active."
+                    horizon_client::lang::get_or("Fast Chunk Mesh Upload Boost active.", "Fast Chunk Mesh Upload Boost active.")
                 } else {
-                    "Standard chunk mesh upload active."
+                    horizon_client::lang::get_or("Standard chunk mesh upload active.", "Standard chunk mesh upload active.")
                 }
                 .into();
             }
@@ -5969,15 +5978,15 @@ impl Launcher {
                 self.catalog.config.cache_budget_mib = mib.min(1024);
                 self.catalog.config.save(&self.home)?;
                 self.chooser = None;
-                self.catalog.status = "Disposable cache budget saved. Applies on next Play; not a total RAM or VRAM limit.".into();
+                self.catalog.status = horizon_client::lang::get_or("Disposable cache budget saved. Applies on next Play; not a total RAM or VRAM limit.", "Disposable cache budget saved. Applies on next Play; not a total RAM or VRAM limit.").into();
             }
             Some(Action::ToggleBundled(id)) => {
                 self.toggle_bundled_mod(id)?;
             }
             Some(Action::GameFiles) => {
                 self.catalog.status = if crate::ha_launcher::platform::open_documents(crate::ha_launcher::document_store::ROOT) {
-                    "Game files opened. Worlds, mods, packs, shaders and reports are available here."
-                } else { "Open system Files > Starling." }.into();
+                    horizon_client::lang::get_or("Game files opened. Worlds, mods, packs, shaders and reports are available here.", "Game files opened. Worlds, mods, packs, shaders and reports are available here.")
+                } else { horizon_client::lang::get_or("Open system Files > Starling.", "Open system Files > Starling.") }.into();
             }
             Some(Action::WorldFiles) => {
                 let id = crate::ha_launcher::document_store::folder_id(
@@ -5985,15 +5994,15 @@ impl Launcher {
                     "worlds",
                 );
                 self.catalog.status = if crate::ha_launcher::platform::open_documents(&id) {
-                    "In Android Files, select a complete world folder, then Copy to a folder you choose."
-                } else { "Open system Files > Starling > Worlds. Copy complete world folders while the game is closed." }.into();
+                    horizon_client::lang::get_or("In Android Files, select a complete world folder, then Copy to a folder you choose.", "In Android Files, select a complete world folder, then Copy to a folder you choose.")
+                } else { horizon_client::lang::get_or("Open system Files > Starling > Worlds. Copy complete world folders while the game is closed.", "Open system Files > Starling > Worlds. Copy complete world folders while the game is closed.") }.into();
             }
             Some(Action::WorkerLimit) => self.open_chooser(chooser::Kind::WorkerLimit),
             Some(Action::ChooseWorkerLimit(limit)) => {
                 self.catalog.config.worker_limit = limit.min(64);
                 self.catalog.config.save(&self.home)?;
                 self.chooser = None;
-                self.catalog.status = "Chunk worker ceiling saved. Applies on the next Play; other engine threads are unchanged.".into();
+                self.catalog.status = horizon_client::lang::get_or("Chunk worker ceiling saved. Applies on the next Play; other engine threads are unchanged.", "Chunk worker ceiling saved. Applies on the next Play; other engine threads are unchanged.").into();
             }
             Some(Action::DisplayHz) => self.open_chooser(chooser::Kind::DisplayHz),
             Some(Action::ChooseDisplayHz(hz)) => {
@@ -6005,13 +6014,13 @@ impl Launcher {
             }
             Some(Action::PerformanceHints) => {
                 self.catalog.config.device.performance_hints ^= true;
-                self.catalog.status="ADPF gives Android CPU frame-work hints on supported devices. It does not cap FPS or guarantee a speedup.".into();
+                self.catalog.status=horizon_client::lang::get_or("ADPF gives Android CPU frame-work hints on supported devices. It does not cap FPS or guarantee a speedup.", "ADPF gives Android CPU frame-work hints on supported devices. It does not cap FPS or guarantee a speedup.").into();
                 self.catalog.config.save(&self.home)?;
                 crate::ha_launcher::device_runtime::configure(self.catalog.config.device);
             }
             Some(Action::GpuProfile) => {
                 self.catalog.config.device.gpu_profile ^= true;
-                self.catalog.status="Detailed GPU profiling records diagnostics and has overhead. Reports remain on this device.".into();
+                self.catalog.status=horizon_client::lang::get_or("Detailed GPU profiling records diagnostics and has overhead. Reports remain on this device.", "Detailed GPU profiling records diagnostics and has overhead. Reports remain on this device.").into();
                 self.catalog.config.save(&self.home)?;
                 crate::ha_launcher::device_runtime::configure(self.catalog.config.device);
             }
@@ -6040,9 +6049,9 @@ impl Launcher {
                     folder,
                 );
                 self.catalog.status = if crate::ha_launcher::platform::open_documents(&id) {
-                    "Opened in Files. Return here after copying files.".into()
+                    horizon_client::lang::get_or("Opened in Files. Return here after copying files.", "Opened in Files. Return here after copying files.").into()
                 } else {
-                    "Open the system Files app and choose Starling.".into()
+                    horizon_client::lang::get_or("Open the system Files app and choose Starling.", "Open the system Files app and choose Starling.").into()
                 };
             }
             Some(Action::Import(kind)) => {
@@ -6069,9 +6078,9 @@ impl Launcher {
             }
             Some(Action::Repository) => {
                 self.catalog.status = if crate::ha_launcher::platform::open_repository() {
-                    "Repository opened in browser."
+                    horizon_client::lang::get_or("Repository opened in browser.", "Repository opened in browser.")
                 } else {
-                    "No browser available to open the repository."
+                    horizon_client::lang::get_or("No browser available to open the repository.", "No browser available to open the repository.")
                 }
                 .into();
             }
@@ -6385,9 +6394,9 @@ impl Launcher {
             Some(Action::OpenReportsFolder) => {
                 self.diagnostics_modal_open = false;
                 self.catalog.status = if crate::ha_launcher::platform::open_documents("reports") {
-                    "Opened Reports folder in system Files.".into()
+                    horizon_client::lang::get_or("Opened Reports folder in system Files.", "Opened Reports folder in system Files.").into()
                 } else {
-                    "Reports are saved in Starling's diagnostics.".into()
+                    horizon_client::lang::get_or("Reports are saved in Starling's diagnostics.", "Reports are saved in Starling's diagnostics.").into()
                 };
             }
             Some(Action::ToggleOpenDirectly) => {
@@ -6399,7 +6408,7 @@ impl Launcher {
                         self.catalog.config.profile + 1
                     )
                 } else {
-                    "Starling opens in the launcher.".into()
+                    horizon_client::lang::get_or("Starling opens in the launcher.", "Starling opens in the launcher.").into()
                 };
             }
             Some(Action::ToggleLauncherAnimations) => {
@@ -6410,9 +6419,9 @@ impl Launcher {
                 );
                 self.catalog.config.save(&self.home)?;
                 self.catalog.status = if self.catalog.config.disable_launcher_animations {
-                    "Launcher animations disabled (instant page & modal transitions)."
+                    horizon_client::lang::get_or("Launcher animations disabled (instant page & modal transitions).", "Launcher animations disabled (instant page & modal transitions).")
                 } else {
-                    "Launcher animations enabled."
+                    horizon_client::lang::get_or("Launcher animations enabled.", "Launcher animations enabled.")
                 }
                 .into();
             }
@@ -6424,9 +6433,9 @@ impl Launcher {
                 self.catalog.config.apply_experimental_to_game(&self.home);
                 self.modify_touch_settings(|t| t.disable_game_animations = next);
                 self.catalog.status = if next {
-                    "In-game animations disabled (static textures, instant FOV/menus, no view bobbing)."
+                    horizon_client::lang::get_or("In-game animations disabled (static textures, instant FOV/menus, no view bobbing).", "In-game animations disabled (static textures, instant FOV/menus, no view bobbing).")
                 } else {
-                    "In-game animations enabled."
+                    horizon_client::lang::get_or("In-game animations enabled.", "In-game animations enabled.")
                 }
                 .into();
             }
@@ -6435,7 +6444,7 @@ impl Launcher {
                 let (sender, receiver) = mpsc::channel();
                 self.diagnostic_export = Some(receiver);
                 self.catalog.status =
-                    "Preparing local diagnostic ZIP. No upload; review before sharing.".into();
+                    horizon_client::lang::get_or("Preparing local diagnostic ZIP. No upload; review before sharing.", "Preparing local diagnostic ZIP. No upload; review before sharing.").into();
                 std::thread::spawn(move || {
                     let result = crate::ha_launcher::diagnostics::export(&home).map(|p| {
                         p.file_name()
@@ -6454,12 +6463,12 @@ impl Launcher {
                 }
                 self.catalog.config.save(&self.home)?;
                 self.catalog.status = if self.catalog.config.record_performance {
-                    "Recording starts on Play. Detailed timings add overhead. Return here to save the report."
-                } else { "Performance recording off." }.into();
+                    horizon_client::lang::get_or("Recording starts on Play. Detailed timings add overhead. Return here to save the report.", "Recording starts on Play. Detailed timings add overhead. Return here to save the report.")
+                } else { horizon_client::lang::get_or("Performance recording off.", "Performance recording off.") }.into();
             }
             Some(Action::ExportPerformance) => {
                 self.catalog.status = match crate::ha_launcher::performance::export(&self.home) {
-                    Ok(()) => "Reports opened in Files. Copy or share a report from there.".into(),
+                    Ok(()) => horizon_client::lang::get_or("Reports opened in Files. Copy or share a report from there.", "Reports opened in Files. Copy or share a report from there.").into(),
                     Err(e) => e,
                 };
             }
@@ -6601,7 +6610,7 @@ impl Launcher {
                 );
                 self.anim.trigger_theme_pulse();
                 self.catalog.config.save(&self.home)?;
-                self.catalog.status = "Theme reset to Horizon default (Obsidian Violet).".into();
+                self.catalog.status = horizon_client::lang::get_or("Theme reset to Horizon default (Obsidian Violet).", "Theme reset to Horizon default (Obsidian Violet).").into();
             }
             Some(Action::SkipIntro) => {
                 self.anim.intro_done = true;
@@ -6732,7 +6741,7 @@ impl Launcher {
                 }
             }
             Some(Action::FmOpenNewFolder) => {
-                self.catalog.fm_input_text = "New Folder".into();
+                self.catalog.fm_input_text = horizon_client::lang::get_or("New Folder", "New Folder").into();
                 self.catalog.fm_modal = Some(crate::ha_launcher::catalog::FmModal::NewFolder);
                 self.catalog.editing = Some("fm_new_folder");
                 crate::ha_launcher::platform::show(&self.catalog.fm_input_text);
@@ -6745,7 +6754,7 @@ impl Launcher {
                     if crate::ha_launcher::document_store::is_protected_root_folder(&entry.rel_path)
                     {
                         self.catalog.status =
-                            "Built-in profile root folders cannot be renamed.".into();
+                            horizon_client::lang::get_or("Built-in profile root folders cannot be renamed.", "Built-in profile root folders cannot be renamed.").into();
                     } else {
                         self.catalog.fm_input_text = entry.name;
                         self.catalog.fm_modal =
@@ -6761,7 +6770,7 @@ impl Launcher {
                 if let Some(rel) = self.catalog.fm_selected.iter().next().cloned() {
                     if crate::ha_launcher::document_store::is_protected_root_folder(&rel) {
                         self.catalog.status =
-                            "Built-in profile root folders cannot be renamed.".into();
+                            horizon_client::lang::get_or("Built-in profile root folders cannot be renamed.", "Built-in profile root folders cannot be renamed.").into();
                     } else {
                         let cur_name = rel.rsplit_once('/').map_or(rel.as_str(), |(_, n)| n);
                         self.catalog.fm_input_text = cur_name.to_owned();
@@ -6771,7 +6780,7 @@ impl Launcher {
                         crate::ha_launcher::platform::show(&self.catalog.fm_input_text);
                     }
                 } else {
-                    self.catalog.status = "Select a single file or folder to rename.".into();
+                    self.catalog.status = horizon_client::lang::get_or("Select a single file or folder to rename.", "Select a single file or folder to rename.").into();
                 }
             }
             Some(Action::FmSubmitRename) => {
@@ -6782,7 +6791,7 @@ impl Launcher {
                     if crate::ha_launcher::document_store::is_protected_root_folder(&entry.rel_path)
                     {
                         self.catalog.status =
-                            "Built-in profile root folders cannot be deleted.".into();
+                            horizon_client::lang::get_or("Built-in profile root folders cannot be deleted.", "Built-in profile root folders cannot be deleted.").into();
                     } else {
                         self.catalog.fm_modal =
                             Some(crate::ha_launcher::catalog::FmModal::ConfirmDelete {
@@ -6793,7 +6802,7 @@ impl Launcher {
             }
             Some(Action::FmRequestDeleteSelected) => {
                 if self.catalog.fm_selected.is_empty() {
-                    self.catalog.status = "Select one or more items to delete.".into();
+                    self.catalog.status = horizon_client::lang::get_or("Select one or more items to delete.", "Select one or more items to delete.").into();
                 } else {
                     let paths: Vec<String> = self
                         .catalog
@@ -6806,7 +6815,7 @@ impl Launcher {
                         .collect();
                     if paths.is_empty() {
                         self.catalog.status =
-                            "Built-in profile root folders cannot be deleted.".into();
+                            horizon_client::lang::get_or("Built-in profile root folders cannot be deleted.", "Built-in profile root folders cannot be deleted.").into();
                     } else {
                         self.catalog.fm_modal =
                             Some(crate::ha_launcher::catalog::FmModal::ConfirmDelete { paths });
@@ -6873,7 +6882,7 @@ impl Launcher {
                         Err(e) => self.catalog.status = e,
                     }
                 } else {
-                    self.catalog.status = "Select a file to export.".into();
+                    self.catalog.status = horizon_client::lang::get_or("Select a file to export.", "Select a file to export.").into();
                 }
             }
             Some(Action::FmCloseModal) => {
@@ -7216,7 +7225,7 @@ fn wrap_text_lines(ui: &Ui, face: Face, size: f32, text: &str, max_w: f32) -> Ve
         }
     }
     if lines.is_empty() {
-        lines.push("No additional description available.".into());
+        lines.push(horizon_client::lang::get_or("No additional description available.", "No additional description available.").into());
     }
     lines
 }
