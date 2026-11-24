@@ -3,6 +3,7 @@
 //! chain of hashes starts from Starling's own files. Nothing of the game ships with Starling:
 //! the files land on the player's device, in the official launcher's layout
 //! (`versions/<v>/<v>.jar`, `libraries/…`, `assets/indexes|objects`) that horizon-prepare reads.
+use crate::mirror;
 use serde_json::Value;
 use sha1::{Digest, Sha1};
 use std::io::{Read, Write};
@@ -285,7 +286,7 @@ pub fn download(
             ));
         }
         Ok(Item {
-            url: url.into(),
+            url: mirror::url(url),
             path,
             sha1: sha1.into(),
             size: d["size"].as_u64().unwrap_or(0),
@@ -313,7 +314,7 @@ pub fn download(
                 continue;
             }
             items.push(Item {
-                url: url.into(),
+                url: mirror::url(url),
                 path: root.join("libraries").join(path),
                 sha1: sha1.into(),
                 size: artifact["size"].as_u64().unwrap_or(0),
@@ -352,7 +353,7 @@ pub fn download(
                 continue;
             };
             items.push(Item {
-                url: format!("{}/{}/{hash}", sources.resources, &hash[..2]),
+                url: mirror::url(&format!("{}/{}/{hash}", sources.resources, &hash[..2])),
                 path: root.join("assets/objects").join(&hash[..2]).join(hash),
                 sha1: hash.into(),
                 size: object["size"].as_u64().unwrap_or(0),
