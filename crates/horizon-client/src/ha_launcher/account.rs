@@ -106,7 +106,7 @@ impl SignIn {
         server: String,
         server_name: String,
         username: String,
-        [PASSWORD],
+        password: String,
         otp: String,
     ) -> Self {
         crate::accounts::sign_in_yggdrasil(server, server_name, username, password, otp);

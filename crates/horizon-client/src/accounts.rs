@@ -474,7 +474,7 @@ pub fn sign_in_yggdrasil(
     server: String,
     server_name: String,
     username: String,
-    [PASSWORD],
+    password: String,
     otp: String,
 ) {
     let (generation, cancel) = begin(State::Starting);
