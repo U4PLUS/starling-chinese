@@ -190,6 +190,9 @@ fn fetch_parallel(
             let _ = std::fs::remove_file(&part);
             return Err(Failure::Again(format!("The download of {NAME} was cut off.")));
         }
+        // The caller unpacks `path` itself, so put the concatenated archive there — the same
+        // rename the single stream does, without which `path` would never exist.
+        std::fs::rename(&part, path).map_err(|e| disk(format!("{}: {e}", path.display())))?;
         progress(total, total);
         Ok(())
     })
@@ -298,7 +301,7 @@ fn connect_range(url: &str, start: u64, end: u64, name: &str) -> Result<ureq::Re
 
 /// The file's size and whether the server honours byte ranges, from a 1-byte `Range` probe
 /// (its `Content-Range: bytes 0-0/TOTAL` states the size). Tries the mirror, then GitHub.
-fn probe(url: &str, name: &str) -> Option<(u64, bool)> {
+fn probe(url: &str, _name: &str) -> Option<(u64, bool)> {
     for target in [format!("{MIRROR}{url}"), url.to_string()] {
         let response = match crate::files::agent()
             .get(&target)
