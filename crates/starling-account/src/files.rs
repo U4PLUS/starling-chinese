@@ -72,7 +72,7 @@ pub struct Wanted {
 }
 
 /// How far a download is: what the progress bar shows.
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Progress {
     pub files: usize,
     pub files_total: usize,
@@ -415,7 +415,7 @@ fn fetch_all(
         bytes_total: items.iter().map(|i| i.size).sum(),
         ..Progress::default()
     };
-    let completed = Mutex::new(initial);
+    let completed = Mutex::new(initial.clone());
     let report = |size: u64, fetched: bool| {
         // Serialize both the counters and their publication so the UI cannot go backwards.
         let mut done = completed.lock().unwrap();
@@ -424,14 +424,15 @@ fn fetch_all(
         if fetched {
             done.downloaded_bytes += size;
             let now = Instant::now();
+            let total_downloaded = done.downloaded_bytes;
             done.last_transfer = Some(now);
-            done.recent.push((now, done.downloaded_bytes));
+            done.recent.push((now, total_downloaded));
             // Keep the ring bounded: drop points older than the rate window (plus slack).
             const KEEP: std::time::Duration = std::time::Duration::from_secs(10);
             done.recent.retain(|(at, _)| now.duration_since(*at) <= KEEP);
             done.refresh_rate();
         }
-        progress(*done);
+        progress(done.clone());
     };
     progress(initial);
     let queue = Mutex::new(items);
@@ -459,7 +460,7 @@ fn fetch_all(
                             let mut done = completed.lock().unwrap();
                             if done.transfer_started.is_none() {
                                 done.transfer_started = Some(Instant::now());
-                                progress(*done);
+                                progress(done.clone());
                             }
                         }
                         fetch_checked(&item.url, &item.sha1, &name)
