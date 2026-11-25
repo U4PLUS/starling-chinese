@@ -164,7 +164,7 @@ impl Fonts {
     /// draws as nothing, so the launcher's Chinese text has to come from here. The scale comes
     /// from whichever font was picked, because the fallback's units per em differ from the Latin
     /// faces' and reusing theirs would draw every CJK glyph at the wrong size.
-    fn glyph_for(&self, f: Face, px: f32, ch: char) -> (&FontRef<'static>, PxScale, ab_glyph::GlyphId, bool) {
+    fn glyph_for(&self, f: Face, px: f32, ch: char) -> (FontRef<'static>, PxScale, ab_glyph::GlyphId, bool) {
         let scale_for = |font: &FontRef<'static>| {
             let upem = font.units_per_em().unwrap_or(1000.0);
             PxScale::from(px * font.height_unscaled() / upem)
@@ -172,10 +172,10 @@ impl Fonts {
         let primary = self.face(f);
         let id = primary.glyph_id(ch);
         if id.0 != 0 {
-            (primary, scale_for(primary), id, false)
+            (primary.clone(), scale_for(primary), id, false)
         } else {
             let cjk = &self.cjk;
-            (cjk, scale_for(cjk), cjk.glyph_id(ch), true)
+            (cjk.clone(), scale_for(cjk), cjk.glyph_id(ch), true)
         }
     }
     /// The ab_glyph scale for an em size in pixels.
