@@ -1409,7 +1409,7 @@ impl<'a> Ui<'a> {
                 let (font, scale, id, cjk) = c.fonts.glyph_for(face, px, ch);
                 let advance = font.as_scaled(scale).h_advance(id);
                 if real && !ch.is_whitespace() {
-                    let g = c.glyph(atlas, face, cjk, font, scale, id, px);
+                    let g = c.glyph(atlas, face, cjk, &font, scale, id, px);
                     if let Some(rect) = g.rect {
                         quads.push(((pen + g.left).round(), baseline + g.top, rect));
                     }
