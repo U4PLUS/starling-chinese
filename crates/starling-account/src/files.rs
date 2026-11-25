@@ -82,6 +82,33 @@ pub struct Progress {
     pub downloaded_bytes: u64,
     pub transfer_started: Option<Instant>,
     pub last_transfer: Option<Instant>,
+    /// Recent byte samples for a sliding-window transfer rate. A cumulative average
+    /// (downloaded bytes over the whole elapsed time) is dragged down by the stretches
+    /// where verified-cached files are skipped and no bytes move, so the rate shown to
+    /// the user reads far below the link's actual speed. This ring holds the last ~8s of
+    /// `(instant, downloaded_bytes)` points to rate over instead.
+    pub recent: Vec<(Instant, u64)>,
+    /// The sliding-window transfer rate in bytes per second, refreshed on each fetch.
+    pub recent_rate: f64,
+}
+
+impl Progress {
+    /// Recompute the sliding-window rate into `recent_rate` from the ring. Called by the
+    /// reporting closure each time bytes land.
+    fn refresh_rate(&mut self) {
+        let now = Instant::now();
+        const WINDOW: std::time::Duration = std::time::Duration::from_secs(6);
+        self.recent_rate = self
+            .recent
+            .iter()
+            .rev()
+            .find(|(at, _)| now.duration_since(*at) <= WINDOW)
+            .and_then(|(start_at, start_bytes)| {
+                let dt = now.duration_since(*start_at).as_secs_f64();
+                (dt >= 0.5).then(|| (self.downloaded_bytes - start_bytes) as f64 / dt)
+            })
+            .unwrap_or(0.0);
+    }
 }
 
 /// Where the fetched files are.
@@ -396,7 +423,13 @@ fn fetch_all(
         done.bytes += size;
         if fetched {
             done.downloaded_bytes += size;
-            done.last_transfer = Some(Instant::now());
+            let now = Instant::now();
+            done.last_transfer = Some(now);
+            done.recent.push((now, done.downloaded_bytes));
+            // Keep the ring bounded: drop points older than the rate window (plus slack).
+            const KEEP: std::time::Duration = std::time::Duration::from_secs(10);
+            done.recent.retain(|(at, _)| now.duration_since(*at) <= KEEP);
+            done.refresh_rate();
         }
         progress(*done);
     };

@@ -348,11 +348,33 @@ fn transfer_details(
     received: u64,
     remaining: u64,
     elapsed: std::time::Duration,
+    recent: f64,
     stalled: bool,
 ) -> String {
     let mut details = format!("{} elapsed", duration(elapsed.as_secs()));
     if stalled {
         details.push_str(" · Waiting for the next file to finish");
+    } else if recent > 0.0 {
+        // Lead with the recent rate: the cumulative average drags toward the link's floor
+        // once most files are verified from cache and only a few big ones still move bytes.
+        let rate = if received > 0 && elapsed.as_secs() >= 3 {
+            received as f64 / elapsed.as_secs_f64()
+        } else {
+            0.0
+        };
+        let remaining = duration((remaining as f64 / recent).ceil() as u64);
+        details = if rate > 0.0 && rate < recent * 0.6 {
+            format!(
+                "{:.2} MB/s · {details} · ~{remaining} left (avg {:.2})",
+                recent / 1_000_000.0,
+                rate / 1_000_000.0
+            )
+        } else {
+            format!(
+                "{:.2} MB/s · {details} · ~{remaining} left",
+                recent / 1_000_000.0
+            )
+        };
     } else if received > 0 && elapsed.as_secs() >= 3 {
         let rate = received as f64 / elapsed.as_secs_f64();
         let remaining = duration((remaining as f64 / rate).ceil() as u64);
@@ -431,6 +453,7 @@ fn texts(step: &Step) -> (&'static str, String, Option<String>) {
                     progress.downloaded_bytes,
                     progress.bytes_total.saturating_sub(progress.bytes),
                     started.elapsed(),
+                    progress.recent_rate,
                     stalled,
                 );
                 format!(
@@ -461,7 +484,13 @@ fn texts(step: &Step) -> (&'static str, String, Option<String>) {
                     "{} of {} MB\n{}",
                     mb(*done),
                     mb(*total),
-                    transfer_details(*done, total.saturating_sub(*done), started.elapsed(), false)
+                    transfer_details(
+                        *done,
+                        total.saturating_sub(*done),
+                        started.elapsed(),
+                        0.0,
+                        false,
+                    )
                 )
             }),
         ),
