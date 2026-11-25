@@ -141,6 +141,9 @@ const TEST_FONTS: Option<horizon_client_render::menu_style::Fonts> =
     });
 struct Fonts {
     faces: [FontRef<'static>; 4],
+    /// Simplified-Chinese fallback: the interface faces carry no CJK glyphs, so characters they
+    /// lack resolve here instead of the resource pack's missing-glyph box.
+    cjk: FontRef<'static>,
 }
 impl Fonts {
     /// The faces given in `menu_style`; none given, none (unit tests take the design system's).
@@ -156,10 +159,25 @@ impl Fonts {
                 f(given.semibold),
                 f(given.mono),
             ],
+            cjk: f(horizon_theme::fonts::CJK_SC),
         })
     }
     fn face(&self, f: Face) -> &FontRef<'static> {
         &self.faces[f as usize]
+    }
+    /// The face that actually draws `ch` and its glyph: the given face when it has the
+    /// character, otherwise the Simplified-Chinese fallback. `ab_glyph` maps a character a face
+    /// lacks to glyph 0, which the caller would send to the resource pack's default font and
+    /// draw as its missing-glyph box, so the interface's Chinese has to come from here. The
+    /// scale is the caller's for the given face, close enough across the fallback.
+    fn font_for(&self, f: Face, ch: char) -> (FontRef<'static>, ab_glyph::GlyphId, bool) {
+        let primary = self.face(f);
+        let id = primary.glyph_id(ch);
+        if id.0 != 0 {
+            (primary.clone(), id, false)
+        } else {
+            (self.cjk.clone(), self.cjk.glyph_id(ch), true)
+        }
     }
     /// The ab_glyph scale for an em size in pixels.
     fn scale(&self, f: Face, px: f32) -> PxScale {
@@ -185,7 +203,7 @@ pub(crate) fn unformatted(text: &str) -> impl Iterator<Item = char> + '_ {
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 enum Key {
-    Glyph(Face, u16, u16),
+    Glyph(Face, bool, u16, u16),
     /// A quarter disc (`false`) or a 1px quarter ring of this radius in pixels.
     Corner(u16, bool),
 }
@@ -299,22 +317,23 @@ impl Cache {
             h,
         })
     }
-    fn glyph(&mut self, atlas: &HudAtlas, face: Face, id: ab_glyph::GlyphId, px: f32) -> Cached {
+    fn glyph(
+        &mut self,
+        atlas: &HudAtlas,
+        face: Face,
+        cjk: bool,
+        font: &FontRef<'static>,
+        scale: PxScale,
+        id: ab_glyph::GlyphId,
+        px: f32,
+    ) -> Cached {
         let size = (px * 4.0).round() as u16;
-        let key = Key::Glyph(face, id.0, size);
+        let key = Key::Glyph(face, cjk, id.0, size);
         if let Some(c) = self.entries.get(&key) {
             return *c;
         }
-        let Some(fonts) = &self.fonts else {
-            return Cached {
-                rect: None,
-                left: 0.0,
-                top: 0.0,
-            };
-        };
-        let scale = fonts.scale(face, f32::from(size) / 4.0);
         let glyph = id.with_scale_and_position(scale, ab_glyph::point(0.0, 0.0));
-        let made = match fonts.face(face).outline_glyph(glyph) {
+        let made = match font.outline_glyph(glyph) {
             Some(outline) => {
                 let b = outline.px_bounds();
                 let (w, h) = (b.width() as u32, b.height() as u32);
@@ -610,12 +629,11 @@ impl<'a> Ui<'a> {
                     prev = None;
                     continue;
                 }
+                let Some(fonts) = &c.fonts else {
+                    break;
+                };
+                let (font, id, cjk) = fonts.font_for(face, ch);
                 let (id, advance, kern) = {
-                    let Some(fonts) = &c.fonts else {
-                        break;
-                    };
-                    let font = fonts.face(face);
-                    let id = font.glyph_id(ch);
                     let f = font.as_scaled(scale);
                     (id, f.h_advance(id), prev.map_or(0.0, |p| f.kern(p, id)))
                 };
@@ -623,7 +641,7 @@ impl<'a> Ui<'a> {
                 if let Some(base) = baseline
                     && !ch.is_whitespace()
                 {
-                    let g = c.glyph(atlas, face, id, px);
+                    let g = c.glyph(atlas, face, cjk, &font, scale, id, px);
                     if let Some(rect) = g.rect {
                         emit(
                             (pen + g.left).round(),
@@ -896,15 +914,12 @@ mod tests {
         .unwrap();
         reset_atlas();
         let draw = |cache: &mut Cache| {
-            let glyph = cache
-                .fonts
-                .as_ref()
-                .unwrap()
-                .face(Face::Regular)
-                .glyph_id('A');
+            let fonts = cache.fonts.as_ref().unwrap();
+            let (font, glyph, cjk) = fonts.font_for(Face::Regular, 'A');
+            let scale = fonts.scale(Face::Regular, 16.0);
             assert!(
                 cache
-                    .glyph(&atlas, Face::Regular, glyph, 16.0)
+                    .glyph(&atlas, Face::Regular, cjk, &font, scale, glyph, 16.0)
                     .rect
                     .is_some()
             );
