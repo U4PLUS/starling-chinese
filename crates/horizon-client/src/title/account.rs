@@ -67,6 +67,9 @@ fn label(p: &Player) -> String {
         Player::Account(a) => match a.provider {
             Provider::Microsoft => "Microsoft".into(),
             Provider::Ely => "Ely.by".into(),
+            Provider::Yggdrasil => {
+                if a.auth_name.is_empty() { "Skin server".into() } else { a.auth_name.clone().into() }
+            }
         },
     };
     format!("{} ({provider})", p.name())

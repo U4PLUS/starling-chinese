@@ -87,6 +87,7 @@ impl Login {
             .map(|a| match a.provider {
                 account::Provider::Ely => "Ely.by",
                 account::Provider::Microsoft => "Microsoft",
+                account::Provider::Yggdrasil => "Skin server",
             })
             .unwrap_or("Microsoft")
     }

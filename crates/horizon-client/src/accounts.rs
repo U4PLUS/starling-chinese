@@ -121,7 +121,7 @@ fn use_session(account: &Account, secrets: &starling_account::Secrets) -> Result
         starling_account::Provider::Microsoft => {
             crate::auth::AuthSession::new(&account.name, uuid, secrets.access_token())
         }
-        starling_account::Provider::Ely => {
+        starling_account::Provider::Ely | starling_account::Provider::Yggdrasil => {
             crate::auth::AuthSession::ely(&account.name, uuid, secrets.access_token())
         }
     };
@@ -262,9 +262,16 @@ pub fn player_skin() -> Option<(String, bool)> {
 /// The playing Ely.by account's skin as Ely.by named it at the sign-in or the last renewal
 /// (`starling_account::ely`, kept with the account): its URL and whether its arms are slim. None
 /// for another profile, or an Ely.by account Ely.by named no skin for.
+/// The playing account's skin when it comes from a third-party source (Ely.by or a skin
+/// server), which the game must read from the URL stored on the account, not Mojang's.
 pub fn ely_skin() -> Option<(String, bool)> {
     match player()? {
-        starling_account::Player::Account(account) if account.provider == Provider::Ely => {
+        starling_account::Player::Account(account)
+            if matches!(
+                account.provider,
+                Provider::Ely | Provider::Yggdrasil
+            ) =>
+        {
             account.skin.map(|(url, model)| (url, model == "slim"))
         }
         _ => None,
@@ -279,7 +286,7 @@ pub fn skin_cloud() -> crate::own_skin::Cloud {
         return Cloud::Local;
     };
     match account.provider {
-        Provider::Ely => Cloud::Ely,
+        Provider::Ely | Provider::Yggdrasil => Cloud::Ely,
         Provider::Microsoft => {
             let key = account.key();
             Cloud::Microsoft(match &shared().skin_upload {

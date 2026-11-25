@@ -128,11 +128,18 @@ pub fn fetch(account: &Account, secrets: &Secrets, root: &Path) -> Result<Cache,
     }
     let snapshot = match account.provider {
         Provider::Microsoft => microsoft_snapshot(PROFILE, secrets)?,
-        Provider::Ely => {
+        Provider::Ely | Provider::Yggdrasil => {
+            // Ely.by's textures live on a fixed host; a skin server's live on its own, which
+            // the account recorded at sign-in.
+            let base = if account.provider == Provider::Ely {
+                "https://skinsystem.ely.by".to_string()
+            } else {
+                account.auth_server.clone()
+            };
             let value = response(
                 crate::ha_launcher::account::request_to(
                     "GET",
-                    &format!("https://skinsystem.ely.by/textures/{}", account.name),
+                    &format!("{base}/textures/{}", account.name),
                 )
                 .call(),
             )?;
