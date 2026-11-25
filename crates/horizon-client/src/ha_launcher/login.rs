@@ -91,7 +91,7 @@ impl Login {
                 .flatten()
                 .is_some_and(|s| serde_json::from_str::<Secrets>(&s).is_ok())
         });
-        self.servers = starling_account::servers::Servers::load(&account::dir()).list;
+        self.servers = starling_account::servers::Servers::load(&crate::accounts::dir()).list;
     }
     /// Opens the add-a-skin-server form: a base URL to verify, then it joins the list.
     pub(super) fn open_add_server(&mut self) {
