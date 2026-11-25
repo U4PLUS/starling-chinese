@@ -241,6 +241,8 @@ impl Login {
             "ely_username" => Some(&self.username),
             "ely_password" => Some(&self.password),
             "ely_otp" => Some(&self.otp),
+            "server_url" => Some(&self.server_url),
+            "server_name" => Some(&self.server_name),
             _ => None,
         }
     }
@@ -253,6 +255,8 @@ impl Login {
             Some("ely_username") => &mut self.username,
             Some("ely_password") => &mut self.password,
             Some("ely_otp") => &mut self.otp,
+            Some("server_url") => &mut self.server_url,
+            Some("server_name") => &mut self.server_name,
             _ => return false,
         };
         match output {
@@ -431,6 +435,16 @@ impl Login {
                 "Choose an account or play offline".into()
             };
             ("Your accounts", line)
+        } else if let Some(server) = &self.active_server {
+            (
+                "Skin server",
+                format!("Credentials go only to {}", server.url),
+            )
+        } else if self.adding_server {
+            (
+                "Add a skin server",
+                "Enter the server's Yggdrasil login address".into(),
+            )
         } else if self.ely {
             (
                 "Ely.by account",
@@ -516,7 +530,8 @@ impl Login {
         if self.providers {
             let gap = 12.0;
             let cw = ((w - 40.0 - gap) * 0.5).max(120.0);
-            let ch = ((content_h - 54.0 - gap) * 0.5).clamp(84.0, 96.0);
+            // Five cards now: two rows of two, then the skin-server entry on its own row.
+            let ch = ((content_h - 54.0 - gap * 2.0) / 3.0).clamp(72.0, 92.0);
             for (i, (label, note, action, mark)) in [
                 (
                     "Microsoft",
@@ -536,6 +551,12 @@ impl Login {
                     "Switch account",
                     Action::SavedAccounts,
                     "S",
+                ),
+                (
+                    "Skin server",
+                    "Sign in with a Yggdrasil server",
+                    Action::SkinServerAdd,
+                    "Y",
                 ),
             ]
             .into_iter()
@@ -572,6 +593,38 @@ impl Login {
                     &note,
                 );
                 targets.push(([cx, cy, cw, ch], action));
+            }
+            // The skin servers the player added, each opening its own sign-in form.
+            if !self.servers.is_empty() {
+                let list_y = content_y + 3.0 * (ch + gap);
+                let row_h = 34.0;
+                let list_h = (footer_y - 8.0 - list_y).max(0.0);
+                let rows = (list_h / (row_h + 6.0)) as usize;
+                for (i, server) in self.servers.iter().enumerate().take(rows) {
+                    let ry = list_y + i as f32 * (row_h + 6.0);
+                    ui.rounded(x + 20.0, ry, w - 40.0, row_h, 10.0, login_surface());
+                    ui.border(x + 20.0, ry, w - 40.0, row_h, 10.0, login_border());
+                    ui.text(
+                        Face::SemiBold,
+                        13.0,
+                        x + 34.0,
+                        ry + 10.0,
+                        login_text(),
+                        &server.name,
+                    );
+                    let host = starling_account::servers::host_of(&server.url);
+                    let host = ui.fit_text(Face::Regular, 11.0, &host, w - 200.0);
+                    ui.text(
+                        Face::Regular,
+                        11.0,
+                        x + 150.0,
+                        ry + 11.0,
+                        login_muted(),
+                        &host,
+                    );
+                    targets.push(([x + 20.0, ry, w - 140.0, row_h], Action::SelectServer(i)));
+                    targets.push(([x + w - 116.0, ry, 96.0, row_h], Action::RemoveServer(i)));
+                }
             }
             button(
                 ui,
@@ -665,6 +718,71 @@ impl Login {
             return;
         }
 
+        if self.adding_server {
+            // The add-a-server form: a login address to verify, an optional name, then it joins
+            // the list the panel offers and opens its own sign-in form.
+            for (i, (name, label, value, placeholder)) in [
+                (
+                    "server_url",
+                    "Login address",
+                    self.server_url.as_str(),
+                    "https://authserver.example.com",
+                ),
+                (
+                    "server_name",
+                    "Name (optional)",
+                    self.server_name.as_str(),
+                    "Leave blank to use the host",
+                ),
+            ]
+            .into_iter()
+            .enumerate()
+            {
+                let fy = content_y + i as f32 * (field_h + gap);
+                let focused = editing == Some(name);
+                ui.text_field(
+                    x + 20.0,
+                    fy,
+                    w - 40.0,
+                    field_h,
+                    label,
+                    value,
+                    placeholder,
+                    focused,
+                );
+                targets.push(([x + 20.0, fy, w - 40.0, field_h], Action::Field(name)));
+            }
+            let note_y = content_y + 2.0 * (field_h + gap) + 4.0;
+            if !self.message.is_empty() {
+                paragraph(
+                    ui,
+                    x + 20.0,
+                    note_y,
+                    w - 40.0,
+                    &self.message,
+                    login_text(),
+                    2,
+                );
+            }
+            button(
+                ui,
+                targets,
+                [x + 20.0, footer_y, w - 40.0, 42.0],
+                "Verify and add",
+                Action::SkinServerVerify,
+                true,
+            );
+            button(
+                ui,
+                targets,
+                [x + 20.0, footer_y - 48.0, w - 40.0, 36.0],
+                "Back to accounts",
+                Action::Account,
+                false,
+            );
+            return;
+        }
+
         if self.ely {
             for (i, (name, label, value, secret, placeholder)) in [
                 (
@@ -734,16 +852,23 @@ impl Login {
                     2,
                 );
             }
+            let for_server = self.active_server.is_some();
             button(
                 ui,
                 targets,
                 [x + 20.0, footer_y, w - 40.0, 42.0],
                 if self.pending() {
                     "Signing in..."
+                } else if for_server {
+                    "Sign in to server"
                 } else {
                     "Sign in to Ely.by"
                 },
-                Action::SubmitEly,
+                if for_server {
+                    Action::SubmitServer
+                } else {
+                    Action::SubmitEly
+                },
                 true,
             );
             button(
