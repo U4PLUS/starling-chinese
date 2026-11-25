@@ -471,6 +471,38 @@ pub fn sign_in_ely(username: String, password: String, otp: String) {
     keep_renewing();
 }
 
+/// Signs in to a third-party skin server the player added, keeping the account against that
+/// server so renewal and the player's skin stay on its host.
+pub fn sign_in_yggdrasil(
+    server: String,
+    server_name: String,
+    username: String,
+    [PASSWORD],
+    otp: String,
+) {
+    let (generation, cancel) = begin(State::Starting);
+    let working = KeepWorking::new(
+        &format!("sign-in-{generation}"),
+        &crate::lang::get("starling.account.ely_working"),
+    );
+    std::thread::spawn(move || {
+        let _working = working;
+        let result = starling_account::keep_yggdrasil(
+            store().as_ref(),
+            &dir(),
+            &server,
+            &server_name,
+            &username,
+            &password,
+            &otp,
+            &|| cancel.load(Ordering::Relaxed),
+        )
+        .and_then(|_| renew(generation));
+        finish(generation, result);
+    });
+    keep_renewing();
+}
+
 /// The platform keeps the game in the foreground while this lives (Android's WorkService): the
 /// sign-in waits on the browser, a download on the network, and a phone may cut a background
 /// app's internet or end it meanwhile.

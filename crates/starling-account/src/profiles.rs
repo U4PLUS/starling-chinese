@@ -180,6 +180,37 @@ pub fn keep_ely(
     Ok(account)
 }
 
+/// Signs in to a third-party skin server and keeps the account, the way [`keep_ely`] keeps
+/// Ely.by's. The server's base URL rides on the account and its secrets, so renewal goes back
+/// to the same host.
+pub fn keep_yggdrasil(
+    store: &dyn SecretStore,
+    dir: &Path,
+    server: &str,
+    server_name: &str,
+    username: &str,
+    password: &str,
+    otp: &str,
+    cancelled: &dyn Fn() -> bool,
+) -> Result<Account, String> {
+    let (mut account, mut secrets) =
+        yggdrasil::authenticate(server, server_name, username, password, otp)?;
+    if account.auth_name.is_empty() {
+        account.auth_name = server_name.into();
+    }
+    if secrets.auth_server().is_empty() {
+        secrets = secrets.with_auth_server(server);
+    }
+    let _lock = account_lock();
+    if cancelled() {
+        return Err("starling.account.error.sign_in_cancelled".into());
+    }
+    let mut list = Accounts::load(dir);
+    list.add(store, account.clone(), &secrets)?;
+    list.save(dir)?;
+    Ok(account)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -33,6 +33,13 @@ pub(super) struct Login {
     pub saved_accounts: Vec<Account>,
     pub account_offset: usize,
     pub ely: bool,
+    /// The skin-server flow: adding a new server, the URL being typed, the servers on offer,
+    /// and which one is being signed into.
+    pub adding_server: bool,
+    pub server_url: String,
+    pub server_name: String,
+    pub servers: Vec<starling_account::servers::Server>,
+    pub active_server: Option<starling_account::servers::Server>,
     pub username: String,
     pub password: String,
     pub otp: String,
@@ -53,6 +60,11 @@ impl Login {
             saved_accounts: vec![],
             account_offset: 0,
             ely: false,
+            adding_server: false,
+            server_url: String::new(),
+            server_name: String::new(),
+            servers: Vec::new(),
+            active_server: None,
             username: String::new(),
             password: String::new(),
             otp: String::new(),
@@ -79,6 +91,27 @@ impl Login {
                 .flatten()
                 .is_some_and(|s| serde_json::from_str::<Secrets>(&s).is_ok())
         });
+        self.servers = starling_account::servers::Servers::load(&account::dir()).list;
+    }
+    /// Opens the add-a-skin-server form: a base URL to verify, then it joins the list.
+    pub(super) fn open_add_server(&mut self) {
+        self.close();
+        self.adding_server = true;
+        self.server_url.clear();
+        self.server_name.clear();
+        self.visible = true;
+        self.refresh_status();
+    }
+    /// Opens the sign-in form for a saved skin server.
+    pub(super) fn open_server(&mut self, url: String, name: String) {
+        self.close();
+        self.ely = true;
+        self.active_server = Some(starling_account::servers::Server { url, name });
+        self.username.clear();
+        self.password.clear();
+        self.otp.clear();
+        self.visible = true;
+        self.refresh_status();
     }
     fn provider_name(&self) -> &'static str {
         self.profile
@@ -179,6 +212,24 @@ impl Login {
         }
         self.message.clear();
         self.task = Some(SignIn::start_ely(
+            self.username.clone(),
+            std::mem::take(&mut self.password),
+            std::mem::take(&mut self.otp),
+        ));
+        self.state = Some(SignInState::Starting);
+    }
+    /// Signs in to the skin server being filled in.
+    pub(super) fn start_server(&mut self) {
+        let Some(server) = self.active_server.clone() else {
+            return;
+        };
+        if let Some(task) = self.task.take() {
+            task.cancel();
+        }
+        self.message.clear();
+        self.task = Some(SignIn::start_server(
+            server.url,
+            server.name,
             self.username.clone(),
             std::mem::take(&mut self.password),
             std::mem::take(&mut self.otp),

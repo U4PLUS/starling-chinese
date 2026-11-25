@@ -101,6 +101,17 @@ impl SignIn {
         crate::accounts::sign_in_ely(username, password, otp);
         Self
     }
+
+    pub fn start_server(
+        server: String,
+        server_name: String,
+        username: String,
+        [PASSWORD],
+        otp: String,
+    ) -> Self {
+        crate::accounts::sign_in_yggdrasil(server, server_name, username, password, otp);
+        Self
+    }
     pub fn state(&self) -> SignInState {
         use crate::accounts::State;
         match crate::accounts::state() {

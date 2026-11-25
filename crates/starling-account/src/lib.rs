@@ -19,11 +19,12 @@ pub mod files;
 pub mod java;
 pub mod mirror;
 mod profiles;
+pub mod servers;
 pub mod skins;
 pub mod yggdrasil;
 pub use profiles::{
-    Player, activate_profile, add_offline, add_offline_if, keep_ely, remove_profile,
-    remove_profile_if, select_profile, select_profile_if, valid_offline_name,
+    Player, activate_profile, add_offline, add_offline_if, keep_ely, keep_yggdrasil,
+    remove_profile, remove_profile_if, select_profile, select_profile_if, valid_offline_name,
 };
 
 static ACCOUNT_LOCK: Mutex<()> = Mutex::new(());
@@ -599,6 +600,11 @@ impl Secrets {
     /// The Yggdrasil server this token renews against (empty for the built-in providers).
     pub fn auth_server(&self) -> &str {
         &self.auth_server
+    }
+    /// A copy carrying a skin server's base URL, for a token that was decoded without one.
+    pub fn with_auth_server(mut self, server: &str) -> Self {
+        self.auth_server = server.to_string();
+        self
     }
     /// Seconds since the epoch at which the Minecraft token stops working.
     pub fn expires_at(&self) -> u64 {
