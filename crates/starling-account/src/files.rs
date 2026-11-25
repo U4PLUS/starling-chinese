@@ -111,7 +111,9 @@ pub(crate) fn agent() -> ureq::Agent {
         .get_or_init(|| {
             ureq::AgentBuilder::new()
                 .timeout_connect(Duration::from_secs(20))
-                .timeout_read(Duration::from_secs(60))
+                // A long inactivity timeout: a big file over a momentary hiccup must not have
+                // its connection dropped partway and restarted, which read like a stall.
+                .timeout_read(Duration::from_secs(300))
                 // A connection kept for each download worker, and some to spare.
                 .max_idle_connections_per_host(40)
                 .user_agent(&format!("starling/{}", env!("CARGO_PKG_VERSION")))
@@ -361,6 +363,11 @@ pub fn download(
         }
         items.sort_by(|a, b| a.path.cmp(&b.path));
         items.dedup_by(|a, b| a.path == b.path);
+        // Fetch the biggest files first. A worker pops one item at a time, so when the queue
+        // dwindles to the few large files (the client jar and friends) most workers would sit
+        // idle behind them and the tail of the download would crawl. Starting them while all
+        // the workers are still busy leaves only the quick small files for the end.
+        items.sort_by(|a, b| b.size.cmp(&a.size));
     }
     fetch_all(items, progress, cancelled)?;
     Ok(Installed {

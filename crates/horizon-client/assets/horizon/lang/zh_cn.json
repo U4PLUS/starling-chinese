@@ -1361,5 +1361,18 @@
   "Checking game files": "正在校验游戏文件",
   "Downloading Java Edition 26.3 client.jar": "正在下载 Java 版 26.3 client.jar",
   "Downloading Java": "下载 Java",
-  "Java is needed to prepare the game files on this device.": "需要 Java 来在此设备上准备游戏文件。"
+  "Java is needed to prepare the game files on this device.": "需要 Java 来在此设备上准备游戏文件。",
+  "CUSTOM ACCENT COLOR": "自定义强调色",
+  "CUSTOM SOLID BACKGROUND & SURFACE COLORS": "自定义纯色背景与表面颜色",
+  "CUSTOM GRADIENT DIRECTION & COLOR STOPS": "自定义渐变方向与色标",
+  "DIAGNOSTICS SUMMARY & LAST HANDLED ERROR": "诊断摘要与上次处理的错误",
+  "PRESET THEMES": "预设主题",
+  "Back": "返回",
+  "OK": "确定",
+  "Confirm": "确认",
+  "ACCENT HEX": "强调色 HEX",
+  "BG HEX": "背景 HEX",
+  "CARD HEX": "卡片 HEX",
+  "FOLDER NAME": "文件夹名称",
+  "NEW NAME": "新名称"
 }

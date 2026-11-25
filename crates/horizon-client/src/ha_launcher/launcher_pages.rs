@@ -1287,7 +1287,8 @@ impl Launcher {
                 17.0,
                 fg,
             );
-            let label = ui.fit_text(Face::Medium, 13.5, page.name(), nw - 42.0);
+            let nav_label = horizon_client::lang::get_or(page.name(), page.name());
+            let label = ui.fit_text(Face::Medium, 13.5, &nav_label, nw - 42.0);
             ui.text(
                 Face::Medium,
                 13.5,
@@ -1575,9 +1576,12 @@ impl Launcher {
             let search_btn_w = 98.0;
             let field_w = (content_w - search_btn_w - 8.0).max(120.0);
             let search_hint = if page == Page::Mods {
-                "Search mods or paste .hmod HTTPS link..."
+                horizon_client::lang::get_or(
+                    "Search mods or paste .hmod HTTPS link...",
+                    "Search mods or paste .hmod HTTPS link...",
+                )
             } else {
-                "Search catalog..."
+                horizon_client::lang::get_or("Search catalog...", "Search catalog...")
             };
             let search_rect = ui.text_field(
                 content_x,
@@ -1586,7 +1590,7 @@ impl Launcher {
                 36.0,
                 "",
                 &self.catalog.query,
-                search_hint,
+                &search_hint,
                 self.catalog.editing == Some("search"),
             );
             self.targets.push((search_rect, Action::Field("search")));
@@ -2260,6 +2264,10 @@ impl Launcher {
             let sort_w = if compact { 96.0 } else { 114.0 };
             let imp_w = if compact { 78.0 } else { 94.0 };
             let search_w = (content_w - sort_w - imp_w - 14.0).max(100.0);
+            let installed_search_hint = horizon_client::lang::get_or(
+                "Search installed mods, packs & shaders...",
+                "Search installed mods, packs & shaders...",
+            );
             let search_r = ui.text_field(
                 content_x,
                 row1_y,
@@ -2267,7 +2275,7 @@ impl Launcher {
                 34.0,
                 "",
                 &self.catalog.installed_query,
-                "Search installed mods, packs & shaders...",
+                &installed_search_hint,
                 self.catalog.editing == Some("installed_search"),
             );
             self.targets
@@ -3065,14 +3073,16 @@ impl Launcher {
                     &format!("Target: /{target_rel} (Slashes and '..' are rejected)"),
                     my3_muted(),
                 );
+                let rename_label = horizon_client::lang::get_or("NEW NAME", "NEW NAME");
+                let rename_hint = horizon_client::lang::get_or("Enter new filename", "Enter new filename");
                 let field_r = ui.text_field(
                     mx + 20.0,
                     my + 68.0,
                     mw - 40.0,
                     48.0,
-                    "NEW NAME",
+                    &rename_label,
                     &self.catalog.fm_input_text,
-                    "Enter new filename",
+                    &rename_hint,
                     self.catalog.editing == Some("fm_rename"),
                 );
                 self.targets.push((field_r, Action::Field("fm_rename")));
@@ -3124,14 +3134,16 @@ impl Launcher {
                     &format!("Location: {loc}"),
                     my3_muted(),
                 );
+                let folder_label = horizon_client::lang::get_or("FOLDER NAME", "FOLDER NAME");
+                let folder_hint = horizon_client::lang::get_or("Enter folder name", "Enter folder name");
                 let field_r = ui.text_field(
                     mx + 20.0,
                     my + 68.0,
                     mw - 40.0,
                     48.0,
-                    "FOLDER NAME",
+                    &folder_label,
                     &self.catalog.fm_input_text,
-                    "Enter folder name",
+                    &folder_hint,
                     self.catalog.editing == Some("fm_new_folder"),
                 );
                 self.targets.push((field_r, Action::Field("fm_new_folder")));
@@ -3884,8 +3896,10 @@ impl Launcher {
 
                 let text_x = cx + 68.0;
                 let text_max = (card_w - 82.0).max(60.0);
-                let fitted_title = ui.fit_text(Face::SemiBold, 15.5, title, text_max);
-                let fitted_sub = ui.fit_text(Face::Regular, 12.5, subtitle, text_max);
+                let card_title = horizon_client::lang::get_or(title, title);
+                let card_subtitle = horizon_client::lang::get_or(subtitle, subtitle);
+                let fitted_title = ui.fit_text(Face::SemiBold, 15.5, &card_title, text_max);
+                let fitted_sub = ui.fit_text(Face::Regular, 12.5, &card_subtitle, text_max);
                 let text_block_y = cy + (card_h - 40.0) * 0.5;
                 ui.text(
                     Face::SemiBold,
@@ -4594,12 +4608,13 @@ impl Launcher {
                             self.list_targets.push((c, Action::SelectAccentSwatch(rgb)));
                         }
                     }
+                    let accent_hex_label = horizon_client::lang::get_or("ACCENT HEX", "ACCENT HEX");
                     let hex_btn_r = ui.text_field(
                         content_x + content_w - 126.0,
                         cy + 5.0,
                         114.0,
                         40.0,
-                        "ACCENT HEX",
+                        &accent_hex_label,
                         &theme_cfg.custom_accent_hex,
                         "#9A7BFF",
                         self.catalog.editing == Some("theme_accent"),
@@ -4654,12 +4669,13 @@ impl Launcher {
                             self.list_targets.push((c, Action::SelectBgSwatch(rgb)));
                         }
                     }
+                    let bg_hex_label = horizon_client::lang::get_or("BG HEX", "BG HEX");
                     let bg_hex_r = ui.text_field(
                         content_x + content_w - 232.0,
                         cy + 5.0,
                         108.0,
                         40.0,
-                        "BG HEX",
+                        &bg_hex_label,
                         &theme_cfg.custom_bg_hex,
                         "#13111C",
                         self.catalog.editing == Some("theme_bg"),
@@ -4670,12 +4686,13 @@ impl Launcher {
                     self.list_targets
                         .push((bg_hex_r, Action::Field("theme_bg")));
 
+                    let card_hex_label = horizon_client::lang::get_or("CARD HEX", "CARD HEX");
                     let surf_hex_r = ui.text_field(
                         content_x + content_w - 118.0,
                         cy + 5.0,
                         108.0,
                         40.0,
-                        "CARD HEX",
+                        &card_hex_label,
                         &theme_cfg.custom_surface_hex,
                         "#1D192B",
                         self.catalog.editing == Some("theme_surface"),
