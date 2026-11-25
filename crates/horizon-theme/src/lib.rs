@@ -41,6 +41,9 @@ pub mod fonts {
         include_bytes!("../fonts/BricolageGrotesqueDisplay-SemiBold.ttf");
     pub const BRICOLAGE_HEADING_SEMIBOLD: &[u8] =
         include_bytes!("../fonts/BricolageGrotesqueHeading-SemiBold.ttf");
+    /// A Simplified-Chinese fallback cut from Noto Sans CJK SC to the GB2312 character set
+    /// (the interface's Latin faces carry no CJK glyphs, which used to render as boxes).
+    pub const CJK_SC: &[u8] = include_bytes!("../fonts/NotoSansSC-subset.ttf");
 }
 
 /// The glass look's icons: Hugeicons' free set (MIT, `icons/glass/LICENSE-hugeicons.txt`), the

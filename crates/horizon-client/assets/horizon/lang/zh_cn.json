@@ -1359,5 +1359,7 @@
   "Downloading the game": "正在下载游戏",
   "From Mojang's servers, checked file by file.": "来自 Mojang 服务器，逐文件校验。",
   "Checking game files": "正在校验游戏文件",
-  "Downloading Java Edition 26.3 client.jar": "正在下载 Java 版 26.3 client.jar"
+  "Downloading Java Edition 26.3 client.jar": "正在下载 Java 版 26.3 client.jar",
+  "Downloading Java": "下载 Java",
+  "Java is needed to prepare the game files on this device.": "需要 Java 来在此设备上准备游戏文件。"
 }

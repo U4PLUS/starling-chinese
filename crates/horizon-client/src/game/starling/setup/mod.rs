@@ -448,8 +448,14 @@ fn texts(step: &Step) -> (&'static str, String, Option<String>) {
             }),
         ),
         Step::Java(done, total, started) => (
-            "Downloading Java",
-            "Java is needed to prepare the game files on this device.".into(),
+            Box::leak(
+                horizon_client::lang::get_or("Downloading Java", "Downloading Java")
+                    .into_boxed_str(),
+            ),
+            horizon_client::lang::get_or(
+                "Java is needed to prepare the game files on this device.",
+                "Java is needed to prepare the game files on this device.",
+            ),
             started.map(|started| {
                 format!(
                     "{} of {} MB\n{}",

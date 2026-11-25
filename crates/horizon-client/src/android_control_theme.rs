@@ -138,6 +138,9 @@ pub enum Icon {
 
 struct Fonts {
     faces: [FontRef<'static>; 4],
+    /// Simplified-Chinese fallback: the Latin faces above carry no CJK glyphs, which used to
+    /// render every translated string as boxes, so characters they lack resolve here instead.
+    cjk: FontRef<'static>,
 }
 impl Fonts {
     fn load() -> Self {
@@ -149,10 +152,31 @@ impl Fonts {
                 f(horizon_theme::fonts::GEIST_SEMIBOLD),
                 f(horizon_theme::fonts::GEIST_MONO),
             ],
+            cjk: f(horizon_theme::fonts::CJK_SC),
         }
     }
     fn face(&self, f: Face) -> &FontRef<'static> {
         &self.faces[f as usize]
+    }
+    /// The font that actually draws `ch`, at `px` in the style of `face`, with its glyph and the
+    /// scale to render it at: the face's own font when it has the character, otherwise the
+    /// Simplified-Chinese fallback. `ab_glyph` maps a character a font lacks to glyph 0, which
+    /// draws as nothing, so the launcher's Chinese text has to come from here. The scale comes
+    /// from whichever font was picked, because the fallback's units per em differ from the Latin
+    /// faces' and reusing theirs would draw every CJK glyph at the wrong size.
+    fn glyph_for(&self, f: Face, px: f32, ch: char) -> (&FontRef<'static>, PxScale, ab_glyph::GlyphId, bool) {
+        let scale_for = |font: &FontRef<'static>| {
+            let upem = font.units_per_em().unwrap_or(1000.0);
+            PxScale::from(px * font.height_unscaled() / upem)
+        };
+        let primary = self.face(f);
+        let id = primary.glyph_id(ch);
+        if id.0 != 0 {
+            (primary, scale_for(primary), id, false)
+        } else {
+            let cjk = &self.cjk;
+            (cjk, scale_for(cjk), cjk.glyph_id(ch), true)
+        }
     }
     /// The ab_glyph scale for an em size in pixels.
     fn scale(&self, f: Face, px: f32) -> PxScale {
@@ -163,7 +187,8 @@ impl Fonts {
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 enum Key {
-    Glyph(Face, u16, u16),
+    /// A rasterized glyph: the face, whether it came from the CJK fallback, its id and its size.
+    Glyph(Face, bool, u16, u16),
     /// A quarter disc (`0`) or a quarter ring of `(radius_px, thickness_px)`.
     Corner(u16, u16),
     /// A supersampled vector icon at this pixel size.
@@ -585,15 +610,23 @@ impl Cache {
             h,
         })
     }
-    fn glyph(&mut self, atlas: &HudAtlas, face: Face, id: ab_glyph::GlyphId, px: f32) -> Cached {
+    fn glyph(
+        &mut self,
+        atlas: &HudAtlas,
+        face: Face,
+        cjk: bool,
+        font: &FontRef<'static>,
+        scale: PxScale,
+        id: ab_glyph::GlyphId,
+        px: f32,
+    ) -> Cached {
         let size = (px * 4.0).round() as u16;
-        let key = Key::Glyph(face, id.0, size);
+        let key = Key::Glyph(face, cjk, id.0, size);
         if let Some(c) = self.entries.get(&key) {
             return *c;
         }
-        let scale = self.fonts.scale(face, f32::from(size) / 4.0);
         let glyph = id.with_scale_and_position(scale, ab_glyph::point(0.0, 0.0));
-        let made = match self.fonts.face(face).outline_glyph(glyph) {
+        let made = match font.outline_glyph(glyph) {
             Some(outline) => {
                 let b = outline.px_bounds();
                 let (w, h) = (b.width() as u32, b.height() as u32);
@@ -839,24 +872,17 @@ impl<'a> Ui<'a> {
         let px = (size * self.density * 4.0).round() / 4.0;
         let max_px = width * self.density;
         with_cache(self.atlas, |cache| {
-            let font = cache.fonts.face(face);
-            let scaled = font.as_scaled(cache.fonts.scale(face, px));
             let mut total = 0.0;
-            let mut prev = None;
             for ch in text.chars() {
-                let id = font.glyph_id(ch);
-                if let Some(p) = prev {
-                    total += scaled.kern(p, id);
-                }
-                total += scaled.h_advance(id);
-                prev = Some(id);
+                let (font, scale, id, _cjk) = cache.fonts.glyph_for(face, px, ch);
+                total += font.as_scaled(scale).h_advance(id);
             }
             if total <= max_px {
                 return text.to_owned();
             }
-            crate::android_control_text::fit(text, max_px, |previous, ch| {
-                let id = font.glyph_id(ch);
-                previous.map_or(0.0, |p| scaled.kern(font.glyph_id(p), id)) + scaled.h_advance(id)
+            crate::android_control_text::fit(text, max_px, |_previous, ch| {
+                let (font, scale, id, _cjk) = cache.fonts.glyph_for(face, px, ch);
+                font.as_scaled(scale).h_advance(id)
             })
         })
     }
@@ -1339,17 +1365,10 @@ impl<'a> Ui<'a> {
     pub fn measure(&self, face: Face, size: f32, text: &str) -> f32 {
         let px = (size * self.density * 4.0).round() / 4.0;
         with_cache(self.atlas, |c| {
-            let font = c.fonts.face(face);
-            let scaled = font.as_scaled(c.fonts.scale(face, px));
             let mut w = 0.0;
-            let mut prev = None;
             for ch in text.chars() {
-                let id = font.glyph_id(ch);
-                if let Some(p) = prev {
-                    w += scaled.kern(p, id);
-                }
-                w += scaled.h_advance(id);
-                prev = Some(id);
+                let (font, scale, id, _cjk) = c.fonts.glyph_for(face, px, ch);
+                w += font.as_scaled(scale).h_advance(id);
             }
             w / self.density
         })
@@ -1379,30 +1398,23 @@ impl<'a> Ui<'a> {
         let mut quads = with_cache(atlas, |c| std::mem::take(&mut c.glyph_scratch));
         quads.clear();
         let width = with_cache(atlas, |c| {
-            let scale = c.fonts.scale(face, px);
             let (ascent, descent) = {
-                let f = c.fonts.face(face).as_scaled(scale);
+                let primary = c.fonts.face(face);
+                let f = primary.as_scaled(c.fonts.scale(face, px));
                 (f.ascent(), f.descent())
             };
             let baseline = y0 + ((box_px - (ascent - descent)) / 2.0 + ascent).round();
             let mut pen = x0;
-            let mut prev = None;
             for ch in text.chars() {
-                let (id, advance, kern) = {
-                    let font = c.fonts.face(face);
-                    let id = font.glyph_id(ch);
-                    let f = font.as_scaled(scale);
-                    (id, f.h_advance(id), prev.map_or(0.0, |p| f.kern(p, id)))
-                };
-                pen += kern;
+                let (font, scale, id, cjk) = c.fonts.glyph_for(face, px, ch);
+                let advance = font.as_scaled(scale).h_advance(id);
                 if real && !ch.is_whitespace() {
-                    let g = c.glyph(atlas, face, id, px);
+                    let g = c.glyph(atlas, face, cjk, font, scale, id, px);
                     if let Some(rect) = g.rect {
                         quads.push(((pen + g.left).round(), baseline + g.top, rect));
                     }
                 }
                 pen += advance;
-                prev = Some(id);
             }
             (pen - x0) / density
         });
