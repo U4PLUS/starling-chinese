@@ -20,6 +20,7 @@ pub mod java;
 pub mod mirror;
 mod profiles;
 pub mod skins;
+pub mod yggdrasil;
 pub use profiles::{
     Player, activate_profile, add_offline, add_offline_if, keep_ely, remove_profile,
     remove_profile_if, select_profile, select_profile_if, valid_offline_name,
@@ -465,6 +466,10 @@ pub enum Provider {
     #[default]
     Microsoft,
     Ely,
+    /// A third-party skin server speaking the Yggdrasil protocol. Which server an account
+    /// belongs to lives on the account (and its secrets) as `auth_server`, not on this
+    /// variant, so `Provider` stays `Copy` and every existing match keeps working.
+    Yggdrasil,
 }
 
 /// A Minecraft profile, as the game shows and remembers it (no secrets).
@@ -475,11 +480,18 @@ pub struct Account {
     /// The profile UUID without dashes.
     pub uuid: String,
     pub name: String,
-    /// The active skin's URL (textures.minecraft.net) and model ("classic" or "slim").
+    /// The active skin's URL and model ("classic" or "slim").
     #[serde(default)]
     pub skin: Option<(String, String)>,
     #[serde(default)]
     pub cape: Option<String>,
+    /// The Yggdrasil server this account signs in through (base URL, no trailing slash);
+    /// empty for Microsoft and Ely.by, which are built in.
+    #[serde(default)]
+    pub auth_server: String,
+    /// The server's display name, as the player entered or the server reported it.
+    #[serde(default)]
+    pub auth_name: String,
 }
 
 impl Account {
@@ -487,12 +499,27 @@ impl Account {
         match self.provider {
             Provider::Microsoft => self.uuid.clone(),
             Provider::Ely => format!("ely{}", self.uuid),
+            // The server URL can't go in the key (the sealed store only takes alphanumerics),
+            // so a short hash of it namespaces players that share a UUID across servers.
+            Provider::Yggdrasil => {
+                format!("ygg{}{}", server_hash(&self.auth_server), self.uuid)
+            }
         }
     }
     /// The UUID as a number, as the game keeps a player's.
     pub fn uuid_u128(&self) -> Option<u128> {
         u128::from_str_radix(&self.uuid, 16).ok()
     }
+}
+
+/// A short alphanumeric namespace for a skin server's URL, so the sealed store (which only
+/// takes `[A-Za-z0-9]` keys) can tell two servers' players apart. The first eight hex of a
+/// SHA-256 is plenty to keep distinct servers from colliding.
+fn server_hash(server: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let digest = Sha256::digest(server.as_bytes());
+    let hex: String = digest.iter().take(4).map(|b| format!("{b:02x}")).collect();
+    hex
 }
 
 fn profile(ep: &Endpoints, token: &str) -> Result<Account, String> {
@@ -532,6 +559,8 @@ fn profile(ep: &Endpoints, token: &str) -> Result<Account, String> {
             ))
         }),
         cape: active("capes").and_then(|c| str_field(&c, "url")),
+        auth_server: String::new(),
+        auth_name: String::new(),
     })
 }
 
@@ -545,6 +574,9 @@ pub struct Secrets {
     minecraft_expires_at: u64,
     #[serde(default)]
     xuid: Option<String>,
+    /// The Yggdrasil server to renew this token against; empty for the built-in providers.
+    #[serde(default)]
+    auth_server: String,
 }
 impl std::fmt::Debug for Secrets {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -560,9 +592,13 @@ impl Secrets {
     pub fn xuid(&self) -> Option<&str> {
         self.xuid.as_deref()
     }
-    /// Whose token it is: Microsoft's or Ely.by's.
+    /// Whose token it is: Microsoft's, Ely.by's, or a third-party skin server's.
     pub fn provider(&self) -> Provider {
         self.provider
+    }
+    /// The Yggdrasil server this token renews against (empty for the built-in providers).
+    pub fn auth_server(&self) -> &str {
+        &self.auth_server
     }
     /// Seconds since the epoch at which the Minecraft token stops working.
     pub fn expires_at(&self) -> u64 {
@@ -594,6 +630,7 @@ fn finish_sign_in_progress(
             minecraft_token: mc.token,
             minecraft_expires_at: mc.expires_at,
             xuid: mc.xuid,
+            auth_server: String::new(),
         },
     ))
 }
@@ -611,6 +648,9 @@ pub fn fresh(
     }
     if account.provider == Provider::Ely {
         return ely::fresh(account, secrets);
+    }
+    if account.provider == Provider::Yggdrasil {
+        return yggdrasil::fresh(account, secrets);
     }
     if secrets.minecraft_expires_at > now() + RENEW_BEFORE {
         return Ok((account.clone(), secrets));

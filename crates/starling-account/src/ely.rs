@@ -7,7 +7,7 @@
 use super::*;
 
 const AUTH: &str = "https://authserver.ely.by";
-fn agent() -> ureq::Agent {
+pub(super) fn agent() -> ureq::Agent {
     ureq::AgentBuilder::new()
         .timeout(Duration::from_secs(20))
         .redirects(0)
@@ -16,8 +16,8 @@ fn agent() -> ureq::Agent {
 }
 pub(super) const REFUSED: &str = "starling.account.error.ely_refused";
 
-fn exchange(endpoint: &str, body: Value) -> Result<Value, String> {
-    let (status, value) = send(agent().post(endpoint), Some(Body::Json(body)), "Ely.by")?;
+pub(super) fn exchange(endpoint: &str, service: &str, body: Value) -> Result<Value, String> {
+    let (status, value) = send(agent().post(endpoint), Some(Body::Json(body)), service)?;
     match status {
         200 => Ok(value),
         401 if value["errorMessage"] == "Account protected with two factor auth." => {
@@ -29,7 +29,13 @@ fn exchange(endpoint: &str, body: Value) -> Result<Value, String> {
     }
 }
 
-fn decode(value: &Value, client: &str) -> Result<(Account, Secrets), String> {
+pub(super) fn decode(
+    value: &Value,
+    client: &str,
+    provider: Provider,
+    auth_server: &str,
+    auth_name: &str,
+) -> Result<(Account, Secrets), String> {
     let profile = &value["selectedProfile"];
     let uuid = str_field(profile, "id")
         .unwrap_or_default()
@@ -55,18 +61,21 @@ fn decode(value: &Value, client: &str) -> Result<(Account, Secrets), String> {
     }
     Ok((
         Account {
-            provider: Provider::Ely,
+            provider,
             uuid,
             name,
             skin: None,
             cape: None,
+            auth_server: auth_server.into(),
+            auth_name: auth_name.into(),
         },
         Secrets {
-            provider: Provider::Ely,
+            provider,
             refresh_token: client.into(),
             minecraft_token: token,
             minecraft_expires_at: now() + 3600,
             xuid: None,
+            auth_server: auth_server.into(),
         },
     ))
 }
@@ -79,10 +88,10 @@ pub fn authenticate(
     otp: &str,
 ) -> Result<(Account, Secrets), String> {
     let (mut account, secrets) = authenticate_with(AUTH, username, password, otp)?;
-    update_textures(&mut account);
+    update_textures_at("https://skinsystem.ely.by", &mut account, "Ely.by skins");
     Ok((account, secrets))
 }
-fn authenticate_with(
+pub(super) fn authenticate_with(
     base: &str,
     username: &str,
     password: &str,
@@ -104,40 +113,42 @@ fn authenticate_with(
     };
     let value = exchange(
         &format!("{base}/auth/authenticate"),
+        "Ely.by",
         json!({
             "username": username.trim(), "password": password, "clientToken": client, "requestUser": true,
         }),
     )?;
-    decode(&value, &client)
+    decode(&value, &client, Provider::Ely, "", "")
 }
 
 pub(super) fn refresh(account: &Account, secrets: &Secrets) -> Result<(Account, Secrets), String> {
     let (mut account, secrets) = refresh_with(AUTH, account, secrets)?;
-    update_textures(&mut account);
+    update_textures_at("https://skinsystem.ely.by", &mut account, "Ely.by skins");
     Ok((account, secrets))
 }
-fn refresh_with(
+pub(super) fn refresh_with(
     base: &str,
     account: &Account,
     secrets: &Secrets,
 ) -> Result<(Account, Secrets), String> {
     let value = exchange(
         &format!("{base}/auth/refresh"),
+        "Ely.by",
         json!({
             "accessToken": secrets.minecraft_token, "clientToken": secrets.refresh_token,
             "selectedProfile": {"id": account.uuid, "name": account.name},
         }),
     )?;
-    let (renewed, secrets) = decode(&value, &secrets.refresh_token)?;
+    let (renewed, secrets) = decode(&value, &secrets.refresh_token, Provider::Ely, "", "")?;
     if renewed.uuid != account.uuid {
         return Err("starling.account.error.ely_changed".into());
     }
     Ok((renewed, secrets))
 }
 
-fn update_textures(account: &mut Account) {
-    let url = format!("https://skinsystem.ely.by/textures/{}", account.name);
-    if let Ok((200, value)) = send(agent().get(&url), None, "Ely.by skins") {
+pub(super) fn update_textures_at(base: &str, account: &mut Account, service: &str) {
+    let url = format!("{base}/textures/{}", account.name);
+    if let Ok((200, value)) = send(agent().get(&url), None, service) {
         account.skin = str_field(&value["SKIN"], "url").map(|url| {
             let model = if value["SKIN"]["metadata"]["model"] == "slim" {
                 "slim"
@@ -242,17 +253,17 @@ mod tests {
     fn provider_identity_is_distinct_and_secrets_are_redacted() {
         let value = json!({"accessToken":"private-access", "clientToken":"private-client",
             "selectedProfile":{"id":"0123456789abcdef0123456789abcdef", "name":"Player"}});
-        let (ely, secrets) = decode(&value, "private-client").unwrap();
+        let (ely, secrets) = decode(&value, "private-client", Provider::Ely, "", "").unwrap();
         let mut microsoft = ely.clone();
         microsoft.provider = Provider::Microsoft;
         assert_ne!(ely.key(), microsoft.key());
         assert!(!format!("{secrets:?}").contains("private"));
         assert!(!serde_json::to_string(&ely).unwrap().contains("private"));
-        assert!(decode(&value, "another-client").is_err());
+        assert!(decode(&value, "another-client", Provider::Ely, "", "").is_err());
         assert!(
             decode(
                 &json!({"accessToken":"x","selectedProfile":{"id":"../bad","name":"Player"}}),
-                "c"
+                "c", Provider::Ely, "", ""
             )
             .is_err()
         );

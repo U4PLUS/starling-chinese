@@ -193,6 +193,8 @@ mod tests {
                 "classic".into(),
             )),
             cape: None,
+            auth_server: String::new(),
+            auth_name: String::new(),
         };
         let secrets = Secrets {
             provider,
@@ -200,6 +202,7 @@ mod tests {
             minecraft_token: "mc-token".into(),
             minecraft_expires_at: now() + 86400,
             xuid: None,
+            auth_server: String::new(),
         };
         let store = MemoryStore::default();
         let mut list = Accounts::load(dir);

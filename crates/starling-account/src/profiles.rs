@@ -209,6 +209,8 @@ mod tests {
                 name: "Player".into(),
                 skin: None,
                 cape: None,
+                auth_server: String::new(),
+                auth_name: String::new(),
             },
             Secrets {
                 provider,
@@ -216,6 +218,7 @@ mod tests {
                 minecraft_token: format!("private-{provider:?}"),
                 minecraft_expires_at: now() + 7200,
                 xuid: None,
+                auth_server: String::new(),
             },
         )
     }

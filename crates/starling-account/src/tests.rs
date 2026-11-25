@@ -200,6 +200,8 @@ fn notch() -> Account {
         name: "Notch".into(),
         skin: None,
         cape: None,
+        auth_server: String::new(),
+        auth_name: String::new(),
     }
 }
 
@@ -236,6 +238,8 @@ fn the_whole_chain() {
                 "slim".into()
             )),
             cape: Some("http://textures.minecraft.net/texture/cape2".into()),
+            auth_server: String::new(),
+            auth_name: String::new(),
         }
     );
     assert_eq!(
@@ -311,6 +315,7 @@ fn refresh_only_when_the_token_runs_out() {
         minecraft_token: "old".into(),
         minecraft_expires_at: now() + 7200,
         xuid: None,
+        auth_server: String::new(),
     };
     let (_, kept) = fresh(&ep, "test-client", &account, good).unwrap();
     assert_eq!(kept.minecraft_token, "old");
@@ -411,6 +416,7 @@ fn accounts_keep_secrets_in_the_store_only() {
         minecraft_token: "mc-secret".into(),
         minecraft_expires_at: 1,
         xuid: None,
+        auth_server: String::new(),
     };
     accounts.add(&store, account.clone(), &secrets).unwrap();
     assert_eq!(accounts.selected(), Some(&account));
@@ -443,6 +449,7 @@ fn the_session_renews_and_saves_itself() {
         minecraft_token: "old".into(),
         minecraft_expires_at: 0,
         xuid: None,
+        auth_server: String::new(),
     };
     accounts.add(&store, notch(), &stale).unwrap();
     accounts.save(&dir).unwrap();
