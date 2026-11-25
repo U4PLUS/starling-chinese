@@ -8,6 +8,10 @@ use sha2::{Digest, Sha256};
 use std::io::{BufReader, Read, Write};
 use std::path::{Component, Path, PathBuf};
 
+/// A front that mirrors GitHub release downloads from inside networks that reach GitHub
+/// slowly; it serves the exact bytes, which the SHA-256 pin below still checks.
+const MIRROR: &str = "https://gh-proxy.com/";
+
 /// A runtime archive (`.tar.xz`) and what it must be.
 pub struct Runtime {
     pub url: &'static str,
@@ -88,6 +92,40 @@ fn fetch(
     crate::files::retrying(|| fetch_once(runtime, path, progress, cancelled))
 }
 
+/// Opens `url` for reading, trying a mirror in front of GitHub first and GitHub itself when the
+/// mirror refuses. A mirror that simply doesn't carry the file falls through to GitHub; when
+/// GitHub's own servers refuse in a way time may fix (`may_pass`) that comes back as
+/// [`Failure::Again`], and the SHA-256 pin still checks whatever either of them serves.
+fn connect(url: &str, name: &str) -> Result<ureq::Response, Failure> {
+    let describe = |e: ureq::Error| match e {
+        ureq::Error::Status(code, _) => (code, format!("GitHub refused {name} ({code}).")),
+        ureq::Error::Transport(t) => {
+            (0, format!("Could not reach {name} ({}).", crate::transport_detail(&t)))
+        }
+    };
+    let mirror = format!("{MIRROR}{url}");
+    let mut mirror_error = match crate::files::agent().get(&mirror).call() {
+        Ok(response) => return Ok(response),
+        Err(e) => describe(e),
+    };
+    match crate::files::agent().get(url).call() {
+        Ok(response) => Ok(response),
+        Err(e) => {
+            let (code, message) = describe(e);
+            if code != 0 && crate::files::may_pass(code) {
+                Err(Failure::Again(format!("{message} Try again in a few minutes.")))
+            } else {
+                if mirror_error.0 == 0 {
+                    mirror_error.1.push_str(" Check your internet connection.");
+                    return Err(Failure::Again(mirror_error.1));
+                }
+                Err(Failure::Again(message))
+            }
+        }
+    }
+}
+
+
 fn fetch_once(
     runtime: &Runtime,
     path: &Path,
@@ -95,24 +133,7 @@ fn fetch_once(
     cancelled: &dyn Fn() -> bool,
 ) -> Result<(), Failure> {
     const NAME: &str = "the Java runtime";
-    let response = crate::files::agent()
-        .get(runtime.url)
-        .call()
-        .map_err(|e| match e {
-            ureq::Error::Status(code, _) => {
-                if crate::files::may_pass(code) {
-                    Failure::Again(format!(
-                        "GitHub refused {NAME} ({code}). Try again in a few minutes."
-                    ))
-                } else {
-                    Failure::Final(format!("GitHub refused {NAME} ({code})."))
-                }
-            }
-            ureq::Error::Transport(t) => Failure::Again(format!(
-                "Could not download {NAME} ({}). Check your internet connection.",
-                crate::transport_detail(&t)
-            )),
-        })?;
+    let response = connect(runtime.url, NAME)?;
     let disk = |e: String| Failure::Final(e);
     let mut part = path.as_os_str().to_owned();
     part.push(".part");

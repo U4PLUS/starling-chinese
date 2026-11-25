@@ -113,7 +113,7 @@ pub(crate) fn agent() -> ureq::Agent {
                 .timeout_connect(Duration::from_secs(20))
                 .timeout_read(Duration::from_secs(60))
                 // A connection kept for each download worker, and some to spare.
-                .max_idle_connections_per_host(16)
+                .max_idle_connections_per_host(40)
                 .user_agent(&format!("starling/{}", env!("CARGO_PKG_VERSION")))
                 .build()
         })
@@ -398,7 +398,7 @@ fn fetch_all(
     let failed: Mutex<Option<String>> = Mutex::new(None);
     let stop = AtomicBool::new(false);
     std::thread::scope(|scope| {
-        for _ in 0..12 {
+        for _ in 0..36 {
             scope.spawn(|| {
                 loop {
                     if stop.load(Ordering::Relaxed) || cancelled() {
