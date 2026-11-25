@@ -267,10 +267,7 @@ pub fn player_skin() -> Option<(String, bool)> {
 pub fn ely_skin() -> Option<(String, bool)> {
     match player()? {
         starling_account::Player::Account(account)
-            if matches!(
-                account.provider,
-                Provider::Ely | Provider::Yggdrasil
-            ) =>
+            if matches!(account.provider, Provider::Ely | Provider::Yggdrasil) =>
         {
             account.skin.map(|(url, model)| (url, model == "slim"))
         }
