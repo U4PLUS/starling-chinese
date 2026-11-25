@@ -49,7 +49,7 @@ pub(super) struct Login {
     task: Option<SignIn>,
     auto_open_device: bool,
     state: Option<SignInState>,
-    message: String,
+    pub message: String,
 }
 impl Login {
     pub fn new() -> Self {
