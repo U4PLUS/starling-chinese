@@ -562,10 +562,17 @@ impl Login {
             .into_iter()
             .enumerate()
             {
-                let cx = x + 20.0 + (i % 2) as f32 * (cw + gap);
-                let cy = content_y + (i / 2) as f32 * (ch + gap);
-                ui.rounded(cx, cy, cw, ch, 16.0, login_surface());
-                ui.border(cx, cy, cw, ch, 16.0, login_border());
+                // Microsoft / LittleSkin / Offline / Saved accounts sit two per row; the skin
+                // server is the advanced entry, so it gets the whole last row to itself.
+                let full_row = i == 4;
+                let col = if full_row { 0 } else { i % 2 };
+                let row = if full_row { 2 } else { i / 2 };
+                let card_w = if full_row { w - 40.0 } else { cw };
+                let cx = x + 20.0 + col as f32 * (cw + gap);
+                let cy = content_y + row as f32 * (ch + gap);
+                let note = ui.fit_text(Face::Regular, 11.5, note, card_w - 28.0);
+                ui.rounded(cx, cy, card_w, ch, 16.0, login_surface());
+                ui.border(cx, cy, card_w, ch, 16.0, login_border());
                 ui.rounded(cx + 14.0, cy + 14.0, 34.0, 34.0, 11.0, login_accent_soft());
                 ui.text(
                     Face::SemiBold,
@@ -583,7 +590,6 @@ impl Login {
                     login_text(),
                     label,
                 );
-                let note = ui.fit_text(Face::Regular, 11.5, note, cw - 28.0);
                 ui.text(
                     Face::Regular,
                     11.5,
@@ -592,7 +598,7 @@ impl Login {
                     login_muted(),
                     &note,
                 );
-                targets.push(([cx, cy, cw, ch], action));
+                targets.push(([cx, cy, card_w, ch], action));
             }
             // The skin servers the player added, each opening its own sign-in form.
             if !self.servers.is_empty() {

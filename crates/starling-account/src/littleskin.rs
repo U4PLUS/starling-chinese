@@ -115,6 +115,7 @@ pub(super) fn authenticate_with(
         &format!("{base}/authserver/authenticate"),
         "LittleSkin",
         json!({
+            "agent": {"name": "Minecraft", "version": 1},
             "username": username.trim(), "password": password, "clientToken": client, "requestUser": true,
         }),
     )?;

@@ -59,6 +59,7 @@ pub fn fresh(account: &Account, secrets: Secrets) -> Result<(Account, Secrets), 
 /// when it is one, so the UI can label the button after it.
 pub fn verify(base: &str) -> Result<String, String> {
     let value = json!({
+        "agent": {"name": "Minecraft", "version": 1},
         "username": "", "password": "", "clientToken": "starling-verify",
     });
     let service = service_name(base);
