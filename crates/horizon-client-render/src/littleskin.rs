@@ -220,7 +220,8 @@ fn fetch(name: &str) -> Option<Answer> {
         .read_to_string(&mut body)
         .ok()?;
     let profiles: serde_json::Value = serde_json::from_str(&body).ok()?;
-    Some(profiles.as_array()?.first().and_then(parse))
+    let first = profiles.as_array()?.first()?.to_string();
+    Some(parse(&first))
 }
 
 #[cfg(test)]
