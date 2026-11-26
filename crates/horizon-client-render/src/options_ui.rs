@@ -2141,7 +2141,7 @@ pub(crate) enum Act {
     Credits,
     CopyAgentDetails,
     /// Skin Customization: the next skin of `skins/`, the other model, the system's file picker
-    /// (phones), the folder, Ely.by's skins.
+    /// (phones), the folder, LittleSkin's skins.
     SelectSkin(Option<String>),
     WardrobeTab(bool),
     AutoRotateWardrobe,
@@ -2154,10 +2154,10 @@ pub(crate) enum Act {
     OpenSkinFolder,
     OpenWardrobeFolder,
     RetryWardrobeSync,
-    ElyBySkins,
-    /// The chosen skin to the Microsoft account's profile; an Ely.by account's skin page.
+    LittleSkinSkins,
+    /// The chosen skin to the Microsoft account's profile; a LittleSkin account's skin page.
     UploadSkin,
-    ElySkinSite,
+    LittleSkinSkinSite,
     /// AI Agent: start or stop the repro recording.
     ToggleRecording,
     /// AI Agent: write the repro bundle now.
@@ -2289,12 +2289,12 @@ pub enum SkinAction {
     OpenWardrobeFolder,
     /// Ask the system for a skin file; it arrives through the import inbox.
     PickFile,
-    /// Ely.by Skins turned on or off (`elyby`): keep it.
-    ElyBy(bool),
+    /// LittleSkin Skins turned on or off (`littleskin`): keep it.
+    LittleSkin(bool),
     /// This skin to the playing Microsoft account's profile, for every server to show.
     Upload(crate::own_skin::SkinChoice),
-    /// Ely.by's page where the playing Ely.by account changes its skin.
-    ElySite,
+    /// LittleSkin's page where the playing LittleSkin account changes its skin.
+    LittleSkinSite,
 }
 /// What the game must do after an interaction.
 #[derive(Clone, Debug, PartialEq)]
@@ -2624,8 +2624,8 @@ struct SkinPage {
     thumbnails:
         std::cell::RefCell<std::collections::HashMap<String, Option<crate::own_skin::Thumbnail>>>,
     choice: crate::own_skin::SkinChoice,
-    /// Ely.by Skins (`elyby::enabled`).
-    elyby: bool,
+    /// LittleSkin Skins (`littleskin::enabled`).
+    littleskin: bool,
     /// A name refused, or a skin the game could not put on.
     warning: Option<String>,
     /// For the game, oldest first.
@@ -2647,7 +2647,7 @@ impl Default for SkinPage {
             auto_rotate_since: None,
             thumbnails: Default::default(),
             choice: Default::default(),
-            elyby: true,
+            littleskin: true,
             warning: None,
             actions: Vec::new(),
         }
@@ -3458,7 +3458,7 @@ impl OptionsUi {
         } else {
             crate::own_skin::SkinChoice::for_profile(&dir, self.profile_key.as_deref())
         };
-        page.elyby = crate::elyby::enabled(&dir);
+        page.littleskin = crate::littleskin::enabled(&dir);
         page.warning = None;
         if !page.name.focused {
             page.name.set_value(&page.saved);
@@ -3687,7 +3687,7 @@ impl OptionsUi {
         }
         rows.push(Row::Paragraph(lang::get("starling.wardrobe.local_cape")));
         match &self.skin_cloud {
-            crate::own_skin::Cloud::Ely => rows.extend(self.skin_cloud_rows()),
+            crate::own_skin::Cloud::LittleSkin => rows.extend(self.skin_cloud_rows()),
             crate::own_skin::Cloud::Microsoft(_) => {
                 if self.wardrobe_account_busy {
                     rows.push(Row::Note(lang::get("starling.wardrobe.loading_capes")));
@@ -3768,24 +3768,24 @@ impl OptionsUi {
     }
     /// Skin Customization's rows for the playing profile's account, as Horizon Android's wardrobe
     /// has them: a Microsoft account's upload of the chosen skin to its profile, and how the last
-    /// one went; an Ely.by account's page on ely.by, where its skin is changed.
+    /// one went; a LittleSkin account's page on littleskin.cn, where its skin is changed.
     fn skin_cloud_rows(&self) -> Vec<Row> {
         use crate::own_skin::{Cloud, Upload};
         let chosen = self.skin.choice.file.is_some();
         match &self.skin_cloud {
             Cloud::Local => Vec::new(),
-            Cloud::Ely => vec![
+            Cloud::LittleSkin => vec![
                 Row::Buttons(
                     button(
                         0.0,
                         0.0,
                         310.0,
-                        tr("starling.skin.ely_site"),
-                        Act::ElySkinSite,
+                        tr("starling.skin.littleskin_site"),
+                        Act::LittleSkinSkinSite,
                     ),
                     None,
                 ),
-                Row::Note(lang::get("starling.skin.ely_hint")),
+                Row::Note(lang::get("starling.skin.littleskin_hint")),
             ],
             Cloud::Microsoft(upload) => {
                 let sending = *upload == Upload::Sending;
@@ -4570,14 +4570,14 @@ impl OptionsUi {
                     pick(None, Text::literal(self.skin_default_name()), 150.0),
                     Some(model),
                 ));
-                let elyby = |width: f32| {
-                    let on = if page.elyby { "ON" } else { "OFF" };
+                let littleskin = |width: f32| {
+                    let on = if page.littleskin { "ON" } else { "OFF" };
                     button(
                         0.0,
                         0.0,
                         width,
-                        Text::literal(format!("Ely.by Skins: {on}")),
-                        Act::ElyBySkins,
+                        Text::literal(format!("LittleSkin Skins: {on}")),
+                        Act::LittleSkinSkins,
                     )
                 };
                 // A phone's own file picker: the file chosen comes through the import inbox.
@@ -4590,10 +4590,10 @@ impl OptionsUi {
                             tr("starling.wardrobe.import_skin"),
                             Act::PickSkin,
                         ),
-                        Some(elyby(150.0)),
+                        Some(littleskin(150.0)),
                     ));
                 } else {
-                    rows.push(Row::Buttons(elyby(310.0), None));
+                    rows.push(Row::Buttons(littleskin(310.0), None));
                 }
                 if page.files.is_empty() {
                     rows.push(Row::Paragraph(lang::get("starling.wardrobe.empty")));
@@ -4614,12 +4614,12 @@ impl OptionsUi {
                     rows.push(Row::Paragraph(lang::get("starling.wardrobe.local_skin")));
                 }
                 // Offline play's skins: by the player's name, where nothing else gives one.
-                if page.elyby {
+                if page.littleskin {
                     rows.push(Row::Note(
-                        "Ely.by Skins: a player without a skin shows the one".into(),
+                        "LittleSkin Skins: a player without a skin shows the one".into(),
                     ));
                     rows.push(Row::Note(
-                        "their name has on ely.by (yours too, on Default)".into(),
+                        "their name has on littleskin.cn (yours too, on Default)".into(),
                     ));
                 }
                 rows.extend(layers);
@@ -5827,14 +5827,16 @@ impl OptionsUi {
                             page.actions.push(SkinAction::Choice(page.choice.clone()));
                         }
                         Act::PickSkin => self.skin.actions.push(SkinAction::PickFile),
-                        Act::ElyBySkins => {
+                        Act::LittleSkinSkins => {
                             let page = &mut self.skin;
-                            page.elyby = !page.elyby;
-                            page.actions.push(SkinAction::ElyBy(page.elyby));
+                            page.littleskin = !page.littleskin;
+                            page.actions.push(SkinAction::LittleSkin(page.littleskin));
                         }
                         Act::OpenSkinFolder => self.skin.actions.push(SkinAction::OpenFolder),
                         Act::UploadSkin => self.queue_skin_upload(),
-                        Act::ElySkinSite => self.skin.actions.push(SkinAction::ElySite),
+                        Act::LittleSkinSkinSite => {
+                            self.skin.actions.push(SkinAction::LittleSkinSite)
+                        }
                         Act::ToggleRecording => events.push(Event::ToggleRecording),
                         Act::DiagnosticsExport => events.push(Event::DiagnosticsExport),
                         Act::DiagnosticsOpen => events.push(Event::DiagnosticsOpen),
@@ -7153,8 +7155,8 @@ impl OptionsUi {
                         | Act::SkinModel
                         | Act::PickSkin
                         | Act::OpenSkinFolder
-                        | Act::ElyBySkins
-                        | Act::ElySkinSite => {}
+                        | Act::LittleSkinSkins
+                        | Act::LittleSkinSkinSite => {}
                         Act::UploadSkin => self.queue_skin_upload(),
                         Act::None => {}
                     }
@@ -11074,17 +11076,17 @@ mod tests {
                 .iter()
                 .any(|r| matches!(r, Row::Warning(w) if w == "Mojang said no"))
         );
-        // Ely.by takes no uploads: its page instead.
-        ui.skin_cloud = Cloud::Ely;
+        // LittleSkin takes no uploads: its page instead.
+        ui.skin_cloud = Cloud::LittleSkin;
         assert_eq!(find(&mut ui, Act::UploadSkin), None);
-        let (at, active) = find(&mut ui, Act::ElySkinSite).unwrap();
+        let (at, active) = find(&mut ui, Act::LittleSkinSkinSite).unwrap();
         assert!(active);
         ui.click(&mut s, &atlas, at.0, at.1, size, [1281, 720], false, false);
-        assert_eq!(ui.take_skin_actions(), [SkinAction::ElySite]);
+        assert_eq!(ui.take_skin_actions(), [SkinAction::LittleSkinSite]);
         // An offline profile's skin stays in this game.
         ui.skin_cloud = Cloud::Local;
         let acts: Vec<Act> = buttons(&mut ui).into_iter().map(|b| b.0).collect();
-        assert!(!acts.contains(&Act::UploadSkin) && !acts.contains(&Act::ElySkinSite));
+        assert!(!acts.contains(&Act::UploadSkin) && !acts.contains(&Act::LittleSkinSkinSite));
     }
 
     #[test]

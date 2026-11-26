@@ -6308,27 +6308,27 @@ impl Game<'_> {
                 entries.push((local, own));
             }
         }
-        // Skin Customization's Ely.by Skins: on a server that sends no skin for a player (offline
-        // mode), the one their name has on Ely.by, as offline launchers show it.
-        let mut from_elyby = std::collections::HashSet::new();
-        // An Ely.by account's own skin where the server sent none: Ely.by's, as Mojang's profile
-        // is a Microsoft account's (`own_profile` asks Mojang nothing for it).
+        // Skin Customization's LittleSkin Skins: on a server that sends no skin for a player (offline
+        // mode), the one their name has on LittleSkin, as offline launchers show it.
+        let mut from_littleskin = std::collections::HashSet::new();
+        // A LittleSkin account's own skin where the server sent none: LittleSkin's, as Mojang's
+        // profile is a Microsoft account's (`own_profile` asks Mojang nothing for it).
         if !entries.iter().any(|(u, t)| *u == local && t.skin.is_some())
-            && let Some(textures) = self.own_elyby_textures()
+            && let Some(textures) = self.own_littleskin_textures()
         {
             entries.retain(|(u, _)| *u != local);
             entries.push((local, textures));
-            from_elyby.insert(local);
+            from_littleskin.insert(local);
         }
         if !online_mode {
             for (uuid, name) in names {
                 if entries.iter().any(|(u, t)| *u == uuid && t.skin.is_some()) {
                     continue;
                 }
-                if let Some(textures) = self.elyby_textures(&name) {
+                if let Some(textures) = self.littleskin_textures(&name) {
                     entries.retain(|(u, _)| *u != uuid);
                     entries.push((uuid, textures));
-                    from_elyby.insert(uuid);
+                    from_littleskin.insert(uuid);
                 }
             }
         }
@@ -6339,8 +6339,8 @@ impl Game<'_> {
         let mut capes: HashMap<u128, String> = HashMap::new();
         for (uuid, textures) in entries {
             // PlayerInfo.createSkinLookup: only the local player's own skin
-            // may be unsigned; Ely.by's never are.
-            let secure = uuid != local && !from_elyby.contains(&uuid);
+            // may be unsigned; LittleSkin's never are.
+            let secure = uuid != local && !from_littleskin.contains(&uuid);
             let skin = {
                 let mut downloads = self.skin_downloads.borrow_mut();
                 horizon_client::skins::lookup(&textures, secure, |kind, url| {

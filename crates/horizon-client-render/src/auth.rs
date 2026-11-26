@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Ludovic Marie and the Horizon contributors.
 // SPDX-License-Identifier: MIT
-// Ely.by routing adapted from Vasysik/horizon-android; see THIRD_PARTY_NOTICES.md.
+// LittleSkin routing adapted from Vasysik/horizon-android; see THIRD_PARTY_NOTICES.md.
 //! The Microsoft account the launcher signed in, handed over in a session
 //! file (docs/microsoft-account.md), and the Minecraft services call
 //! online-mode servers need: authlib's MinecraftServicesSessionService.joinServer
@@ -23,7 +23,7 @@ pub struct AuthSession {
     pub uuid: u128,
     pub xuid: Option<String>,
     access_token: String,
-    ely: bool,
+    littleskin: bool,
 }
 impl std::fmt::Debug for AuthSession {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -48,7 +48,7 @@ impl AuthSession {
     pub fn account_key(&self) -> String {
         format!(
             "{}-{:032x}",
-            if self.ely { "ely" } else { "msa" },
+            if self.littleskin { "littleskin" } else { "msa" },
             self.uuid
         )
     }
@@ -59,17 +59,17 @@ impl AuthSession {
             uuid,
             xuid: None,
             access_token: access_token.to_owned(),
-            ely: false,
+            littleskin: false,
         }
     }
-    pub fn ely(name: &str, uuid: u128, access_token: &str) -> Self {
+    pub fn littleskin(name: &str, uuid: u128, access_token: &str) -> Self {
         let mut session = Self::new(name, uuid, access_token);
-        session.ely = true;
+        session.littleskin = true;
         session
     }
-    /// An Ely.by account: its skin is on Ely.by, not on Mojang's profile.
-    pub fn is_ely(&self) -> bool {
-        self.ely
+    /// A LittleSkin (or skin-server) account: its skin is on its own host, not on Mojang's profile.
+    pub fn is_littleskin(&self) -> bool {
+        self.littleskin
     }
 
     pub fn access_token(&self) -> &str {
@@ -90,7 +90,7 @@ impl AuthSession {
         let access_token = field("access_token")
             .filter(|t| !t.is_empty())
             .ok_or("the session has no access token")?;
-        if field("user_type").is_some_and(|t| t != "msa" && t != "ely") {
+        if field("user_type").is_some_and(|t| t != "msa" && t != "littleskin") {
             return Err("the session is not a Microsoft account session".into());
         }
         Ok(Self {
@@ -98,7 +98,7 @@ impl AuthSession {
             uuid,
             xuid: field("xuid").map(str::to_owned),
             access_token: access_token.to_owned(),
-            ely: field("user_type") == Some("ely"),
+            littleskin: field("user_type") == Some("littleskin"),
         })
     }
     /// Read the session file the launcher wrote and delete it at once. It
@@ -266,7 +266,7 @@ pub fn endpoint(doc: &serde_json::Value, service: &str, name: &str) -> Option<St
 /// attributes call falls back to the offline properties, a failed profile call
 /// to no actions, as vanilla does. Blocks: call it off the main thread.
 pub fn fetch_account_status(session: &AuthSession) -> crate::ban_notice::AccountStatus {
-    if session.ely {
+    if session.littleskin {
         return Default::default();
     }
     use crate::ban_notice::{AccountStatus, parse_profile_actions, parse_properties};
@@ -340,8 +340,9 @@ pub fn join_server(session: &AuthSession, server_hash: &str) -> Result<(), JoinE
 }
 
 fn join_server_once(session: &AuthSession, server_hash: &str) -> Result<(), JoinError> {
-    let url = if session.ely {
-        "https://authserver.ely.by/session/join".to_owned()
+    let url = if session.littleskin {
+        // LittleSkin's session server: the authlib-injector join endpoint off its API root.
+        "https://littleskin.cn/api/yggdrasil/sessionserver/session/minecraft/join".to_owned()
     } else {
         let doc = discovery()?;
         endpoint(&doc, "session", "join").ok_or(JoinError::Unavailable)?
@@ -466,7 +467,7 @@ pub fn parse_certificates(body: &str) -> Option<ChatKeyPair> {
 /// UserApiService.getKeyPair: the certificates endpoint, POSTed with the
 /// access token.
 pub fn fetch_chat_keys(session: &AuthSession) -> Result<ChatKeyPair, JoinError> {
-    if session.ely {
+    if session.littleskin {
         return Err(JoinError::Unavailable);
     }
     let doc = discovery()?;
@@ -573,7 +574,7 @@ const MINECRAFT_PROFILE: &str = "https://api.minecraftservices.com/minecraft/pro
 /// Single-player and integrated servers often send no `textures` property, or
 /// one without the equipped cape; the client asks the profile endpoint once.
 pub fn own_textures(session: &AuthSession) -> Option<crate::skins::Textures> {
-    if session.ely {
+    if session.littleskin {
         return None;
     }
     let response = agent()
@@ -999,14 +1000,14 @@ mod tests {
 mod provider_tests {
     use super::*;
     #[test]
-    fn provider_identity_is_distinct_and_ely_session_keeps_its_own_join_identity() {
+    fn provider_identity_is_distinct_and_littleskin_session_keeps_its_own_join_identity() {
         let ms = AuthSession::new("Player", 1, "microsoft-private");
-        let ely=AuthSession::parse(r#"{"name":"Player","uuid":"00000000000000000000000000000001","access_token":"ely-private","user_type":"ely"}"#).unwrap();
-        assert_ne!(ms.account_key(), ely.account_key());
-        assert!(!format!("{ely:?}").contains("ely-private"));
+        let littleskin=AuthSession::parse(r#"{"name":"Player","uuid":"00000000000000000000000000000001","access_token":"littleskin-private","user_type":"littleskin"}"#).unwrap();
+        assert_ne!(ms.account_key(), littleskin.account_key());
+        assert!(!format!("{littleskin:?}").contains("littleskin-private"));
         let join: serde_json::Value =
-            serde_json::from_str(&join_request(&ely, "server-hash")).unwrap();
-        assert_eq!(join["accessToken"], "ely-private");
+            serde_json::from_str(&join_request(&littleskin, "server-hash")).unwrap();
+        assert_eq!(join["accessToken"], "littleskin-private");
         assert_eq!(join["selectedProfile"], "00000000000000000000000000000001");
         assert_eq!(join["serverId"], "server-hash");
         assert!(join.get("xuid").is_none());

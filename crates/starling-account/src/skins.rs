@@ -3,12 +3,12 @@
 // Adapted from Vasysik/horizon-android (`launcher/src/skins/cloud.rs`); see THIRD_PARTY_NOTICES.md.
 //! A profile's skin on its account's service. A Microsoft account's goes to its Minecraft profile
 //! (`POST /minecraft/profile/skins`: the PNG and its arms), which servers then hand to the other
-//! players. Ely.by's public API takes no uploads: an Ely.by account changes its skin on the
-//! website ([`ELY_SKINS`]), where the game looks it up by name.
+//! players. LittleSkin's public API takes no uploads: a LittleSkin account changes its skin on
+//! the website ([`LITTLE_SKINS`]), where the game looks it up by its profile.
 use super::*;
 
-/// Where an Ely.by account changes its skin.
-pub const ELY_SKINS: &str = "https://ely.by/skins";
+/// Where a LittleSkin account changes its skin.
+pub const LITTLE_SKINS: &str = "https://littleskin.cn/user/profile";
 /// The largest PNG sent, as Horizon Android's import takes.
 pub const MAX_PNG: usize = 1024 * 1024;
 const BOUNDARY: &str = "starling-skin-upload-v1";
@@ -47,7 +47,7 @@ pub fn upload_skin(
         return Err("starling.account.error.cancelled".into());
     }
     if account.provider != Provider::Microsoft {
-        return Err("starling.skin.error.ely_website".into());
+        return Err("starling.skin.error.littleskin_website".into());
     }
     let request = bearer(
         agent().post(&format!("{}/minecraft/profile/skins", ep.minecraft)),
@@ -242,14 +242,14 @@ mod tests {
     }
 
     #[test]
-    fn nothing_is_sent_for_ely_another_profile_or_a_file_that_is_no_png() {
+    fn nothing_is_sent_for_littleskin_another_profile_or_a_file_that_is_no_png() {
         let scratch = Scratch::new("refused");
         // No server: any request would fail as unreachable rather than as these.
         let (ep, seen) = serve(vec![]);
-        let (store, account) = signed_in(&scratch.0, Provider::Ely);
+        let (store, account) = signed_in(&scratch.0, Provider::LittleSkin);
         assert_eq!(
             upload_skin(&ep, &store, &scratch.0, &account.key(), PNG, false).unwrap_err(),
-            "starling.skin.error.ely_website"
+            "starling.skin.error.littleskin_website"
         );
         let (store, account) = signed_in(&scratch.0, Provider::Microsoft);
         assert_eq!(

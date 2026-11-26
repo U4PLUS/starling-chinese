@@ -14,16 +14,16 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-pub mod ely;
 pub mod files;
 pub mod java;
+pub mod littleskin;
 pub mod mirror;
 mod profiles;
 pub mod servers;
 pub mod skins;
 pub mod yggdrasil;
 pub use profiles::{
-    Player, activate_profile, add_offline, add_offline_if, keep_ely, keep_yggdrasil,
+    Player, activate_profile, add_offline, add_offline_if, keep_littleskin, keep_yggdrasil,
     remove_profile, remove_profile_if, select_profile, select_profile_if, valid_offline_name,
 };
 
@@ -466,7 +466,7 @@ fn owns_game(ep: &Endpoints, token: &str) -> Result<bool, String> {
 pub enum Provider {
     #[default]
     Microsoft,
-    Ely,
+    LittleSkin,
     /// A third-party skin server speaking the Yggdrasil protocol. Which server an account
     /// belongs to lives on the account (and its secrets) as `auth_server`, not on this
     /// variant, so `Provider` stays `Copy` and every existing match keeps working.
@@ -487,7 +487,7 @@ pub struct Account {
     #[serde(default)]
     pub cape: Option<String>,
     /// The Yggdrasil server this account signs in through (base URL, no trailing slash);
-    /// empty for Microsoft and Ely.by, which are built in.
+    /// empty for Microsoft and LittleSkin, which are built in.
     #[serde(default)]
     pub auth_server: String,
     /// The server's display name, as the player entered or the server reported it.
@@ -499,7 +499,7 @@ impl Account {
     pub fn key(&self) -> String {
         match self.provider {
             Provider::Microsoft => self.uuid.clone(),
-            Provider::Ely => format!("ely{}", self.uuid),
+            Provider::LittleSkin => format!("littleskin{}", self.uuid),
             // The server URL can't go in the key (the sealed store only takes alphanumerics),
             // so a short hash of it namespaces players that share a UUID across servers.
             Provider::Yggdrasil => {
@@ -593,7 +593,7 @@ impl Secrets {
     pub fn xuid(&self) -> Option<&str> {
         self.xuid.as_deref()
     }
-    /// Whose token it is: Microsoft's, Ely.by's, or a third-party skin server's.
+    /// Whose token it is: Microsoft's, LittleSkin's, or a third-party skin server's.
     pub fn provider(&self) -> Provider {
         self.provider
     }
@@ -652,8 +652,8 @@ pub fn fresh(
     if account.provider != secrets.provider {
         return Err("starling.account.error.provider_mismatch".into());
     }
-    if account.provider == Provider::Ely {
-        return ely::fresh(account, secrets);
+    if account.provider == Provider::LittleSkin {
+        return littleskin::fresh(account, secrets);
     }
     if account.provider == Provider::Yggdrasil {
         return yggdrasil::fresh(account, secrets);

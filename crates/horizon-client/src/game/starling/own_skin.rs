@@ -2,8 +2,8 @@
 //! the name kept for the next world or server, and the chosen PNG of `skins/` put in one of the
 //! atlas's skin slots, where the local player's model (first and third person, the inventory's)
 //! and the player list's head take it in place of the profile's skin (`update_remote_skins`).
-//! Each profile (Microsoft, Ely.by, offline) wears its own choice; a Microsoft account can upload
-//! it to its profile and an Ely.by account changes its own on ely.by, as in Horizon Android's
+//! Each profile (Microsoft, LittleSkin, offline) wears its own choice; a Microsoft account can upload
+//! it to its profile and a LittleSkin account changes its own on littleskin.cn, as in Horizon Android's
 //! wardrobe.
 use super::Game;
 use horizon_client::{
@@ -60,11 +60,11 @@ pub(in crate::game) struct OwnSkin {
     /// How far a drag turned it, and the drag going on: where it began and the turn then.
     title_turn: f32,
     title_drag: Option<(f32, f32)>,
-    /// Ely.by's skins by name, kept in `assets/skins/elyby.json` once read, and whether Skin
-    /// Customization has them on (read on first use).
-    elyby: horizon_client::elyby::Lookup,
-    elyby_kept: bool,
-    elyby_on: Option<bool>,
+    /// LittleSkin's skins by name, kept in `assets/skins/littleskin.json` once read, and whether
+    /// Skin Customization has them on (read on first use).
+    littleskin: horizon_client::littleskin::Lookup,
+    littleskin_kept: bool,
+    littleskin_on: Option<bool>,
     /// The name worlds open with, read again every few seconds.
     worlds_name: Option<(String, Instant)>,
     /// The profile whose own choice is on (`accounts::player_key`): another one playing puts its
@@ -82,7 +82,7 @@ pub(in crate::game) struct TitlePlayer {
 enum Worn {
     Skin(String, bool),
     Default,
-    /// Ely.by's answer or its skin's download, still to come.
+    /// LittleSkin's answer or its skin's download, still to come.
     Waiting,
 }
 
@@ -192,62 +192,62 @@ impl Game<'_> {
         self.own_skin.title = None;
     }
 
-    /// Skin Customization's Ely.by Skins: kept, and the skins shown again.
-    pub(in crate::game) fn keep_elyby(&mut self, on: bool) {
-        if let Err(e) = horizon_client::elyby::set_enabled(&Self::player_dir(), on) {
-            log::warn!("Horizon: could not keep Ely.by Skins: {e}");
+    /// Skin Customization's LittleSkin Skins: kept, and the skins shown again.
+    pub(in crate::game) fn keep_littleskin(&mut self, on: bool) {
+        if let Err(e) = horizon_client::littleskin::set_enabled(&Self::player_dir(), on) {
+            log::warn!("Horizon: could not keep LittleSkin Skins: {e}");
         }
-        self.own_skin.elyby_on = Some(on);
+        self.own_skin.littleskin_on = Some(on);
         self.own_skin.title = None;
     }
 
-    fn elyby_enabled(&mut self) -> bool {
-        if !self.own_skin.elyby_kept {
-            self.own_skin.elyby_kept = true;
-            let file = Self::player_dir().join("assets/skins/elyby.json");
-            self.own_skin.elyby.keep_in(file);
+    fn littleskin_enabled(&mut self) -> bool {
+        if !self.own_skin.littleskin_kept {
+            self.own_skin.littleskin_kept = true;
+            let file = Self::player_dir().join("assets/skins/littleskin.json");
+            self.own_skin.littleskin.keep_in(file);
         }
         *self
             .own_skin
-            .elyby_on
-            .get_or_insert_with(|| horizon_client::elyby::enabled(&Self::player_dir()))
+            .littleskin_on
+            .get_or_insert_with(|| horizon_client::littleskin::enabled(&Self::player_dir()))
     }
 
-    /// `name`'s skin on Ely.by, where Skin Customization has Ely.by Skins on and it answered.
-    pub(in crate::game) fn elyby_textures(
+    /// `name`'s skin on LittleSkin, where Skin Customization has LittleSkin Skins on and it answered.
+    pub(in crate::game) fn littleskin_textures(
         &mut self,
         name: &str,
     ) -> Option<horizon_client::skins::Textures> {
-        if !self.elyby_enabled() {
+        if !self.littleskin_enabled() {
             return None;
         }
-        self.own_skin.elyby.textures(name)
+        self.own_skin.littleskin.textures(name)
     }
 
-    /// The playing Ely.by account's own skin: the one Ely.by named with the account, else its
-    /// name's once Ely.by answered. Ely.by is where that account keeps it, whether or not Skin
-    /// Customization looks other names up there. None for another account or none.
-    pub(in crate::game) fn own_elyby_textures(
+    /// The playing LittleSkin account's own skin: the one LittleSkin named with the account, else
+    /// its name's once LittleSkin answered. LittleSkin is where that account keeps it, whether or
+    /// not Skin Customization looks other names up there. None for another account or none.
+    pub(in crate::game) fn own_littleskin_textures(
         &mut self,
     ) -> Option<horizon_client::skins::Textures> {
         let session = horizon_client::auth::current();
-        if session.as_ref().is_some_and(|a| !a.is_ely()) {
+        if session.as_ref().is_some_and(|a| !a.is_littleskin()) {
             return None;
         }
-        if let Some(textures) = Self::ely_account_textures() {
+        if let Some(textures) = Self::littleskin_account_textures() {
             return Some(textures);
         }
         let account = session?;
         // Its answers are kept in the same file.
-        self.elyby_enabled();
-        self.own_skin.elyby.textures(&account.name)
+        self.littleskin_enabled();
+        self.own_skin.littleskin.textures(&account.name)
     }
 
-    /// The playing Ely.by account's own skin as Ely.by named it at its sign-in or last renewal
-    /// (`accounts::ely_skin`): there at once, with no lookup by name, no session yet and whether
-    /// or not Ely.by Skins is on. None for another profile.
-    fn ely_account_textures() -> Option<horizon_client::skins::Textures> {
-        let (url, slim) = horizon_client::accounts::ely_skin()?;
+    /// The playing LittleSkin account's own skin as LittleSkin named it at its sign-in or last
+    /// renewal (`accounts::littleskin_skin`): there at once, with no lookup by name, no session yet
+    /// and whether or not LittleSkin Skins is on. None for another profile.
+    fn littleskin_account_textures() -> Option<horizon_client::skins::Textures> {
+        let (url, slim) = horizon_client::accounts::littleskin_skin()?;
         Some(horizon_client::skins::Textures {
             skin: Some(url),
             slim,
@@ -272,8 +272,8 @@ impl Game<'_> {
 
     /// The skin the player wears where no server gives one (single player, the title screen):
     /// the file Skin Customization chose for the playing profile, else a Microsoft account's own,
-    /// else, playing offline or as Ely.by, the one the name worlds open with has on Ely.by. None
-    /// for the default skin.
+    /// else, playing offline or as LittleSkin, the one the name worlds open with has on
+    /// LittleSkin. None for the default skin.
     pub(in crate::game) fn worn_skin(&mut self) -> Option<(String, bool)> {
         match self.own_worn() {
             Worn::Skin(skin, slim) => Some((skin, slim)),
@@ -287,22 +287,22 @@ impl Game<'_> {
             return Worn::Skin(skin, slim);
         }
         // A Microsoft account's skin comes from its profile (remote.rs, `own_profile`; here the
-        // one the accounts keep). An Ely.by account's is the one Ely.by named at its sign-in or
-        // last renewal, else looked up on Ely.by by its name like an offline one's.
-        let ely = match horizon_client::auth::current() {
-            Some(account) if !account.is_ely() => return self.account_worn(),
+        // one the accounts keep). A LittleSkin account's is the one LittleSkin named at its
+        // sign-in or last renewal, else looked up on LittleSkin by its name like an offline one's.
+        let littleskin = match horizon_client::auth::current() {
+            Some(account) if !account.is_littleskin() => return self.account_worn(),
             Some(_) => true,
             None => false,
         };
-        let textures = if let Some(textures) = Self::ely_account_textures() {
+        let textures = if let Some(textures) = Self::littleskin_account_textures() {
             textures
         } else {
-            if !self.elyby_enabled() && !ely {
+            if !self.littleskin_enabled() && !littleskin {
                 return Worn::Default;
             }
             let name = self.worlds_name();
-            let Some(textures) = self.own_skin.elyby.textures(&name) else {
-                return if self.own_skin.elyby.waiting(&name) {
+            let Some(textures) = self.own_skin.littleskin.textures(&name) else {
+                return if self.own_skin.littleskin.waiting(&name) {
                     Worn::Waiting
                 } else {
                     Worn::Default
@@ -470,9 +470,9 @@ impl Game<'_> {
         Ok(())
     }
 
-    /// Skin Customization's ely.by button: the page where an Ely.by account changes its skin.
-    pub(in crate::game) fn open_ely_skins(&mut self) {
-        self.open_link(horizon_client::accounts::ELY_SKINS);
+    /// Skin Customization's LittleSkin button: the page where a LittleSkin account changes its skin.
+    pub(in crate::game) fn open_littleskin_skins(&mut self) {
+        self.open_link(horizon_client::accounts::LITTLE_SKINS);
     }
 
     /// Whether the title screen is on its main page, where its player stands.
@@ -556,7 +556,7 @@ impl Game<'_> {
         }
         // The skin and the name every frame (both kept, cheap to ask): a skin waiting for its
         // atlas slot or its download shows the first frame it has one, and the default one only
-        // when it takes long (the first time a name is asked of Ely.by).
+        // when it takes long (the first time a name is asked of LittleSkin).
         let worn = self.own_worn();
         let since = *self.own_skin.title_since.get_or_insert_with(Instant::now);
         if matches!(worn, Worn::Waiting) && since.elapsed() < SKIN_WAIT {

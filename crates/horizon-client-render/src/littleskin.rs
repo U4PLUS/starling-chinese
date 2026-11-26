@@ -1,23 +1,25 @@
-//! Ely.by's skin system (skinsystem.ely.by): the skins players without a Mojang account keep there
+//! LittleSkin's skin system (littleskin.cn): the skins players without a Mojang account keep there
 //! under their name, which offline launchers and servers show. Asked by name without signing in,
 //! each name once a session on a thread of its own, the answers kept on disk so the next start
-//! shows them at once while it asks again; Skin Customization's Ely.by Skins turns it off
-//! (`elyby:off` in horizon-player.txt).
+//! shows them at once while it asks again; Skin Customization's LittleSkin Skins turns it off
+//! (`littleskin:off` in horizon-player.txt).
 use crate::{offline_name, skins::Textures};
+use base64::Engine as _;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::{Receiver, Sender, channel};
 
-/// `GET /textures/{nickname}`: the skin's URL and model, 204 for a name without a skin.
-const TEXTURES: &str = "https://skinsystem.ely.by/textures/";
-const KEY: &str = "elyby";
+/// `POST /profiles/minecraft` (body `[{"name": ...}]`): the name's profile, whose `textures`
+/// property carries the skin base64-encoded; an empty answer for a name without a profile.
+const PROFILES: &str = "https://littleskin.cn/api/yggdrasil/profiles/minecraft";
+const KEY: &str = "littleskin";
 
-/// Whether Ely.by's skins show: on unless Skin Customization turned them off.
+/// Whether LittleSkin's skins show: on unless Skin Customization turned them off.
 pub fn enabled(dir: &Path) -> bool {
     offline_name::value(dir, KEY).as_deref() != Some("off")
 }
 
-/// Keep Skin Customization's Ely.by Skins in `dir`'s horizon-player.txt.
+/// Keep Skin Customization's LittleSkin Skins in `dir`'s horizon-player.txt.
 pub fn set_enabled(dir: &Path, on: bool) -> std::io::Result<()> {
     offline_name::set_values(dir, &[(KEY, Some(if on { "on" } else { "off" }))])
 }
@@ -28,12 +30,21 @@ pub fn is_name(name: &str) -> bool {
     (1..=16).contains(&name.len()) && name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
 }
 
-/// The skin of `/textures/{nickname}`'s answer, `{"SKIN": {"url": ..., "metadata": {"model":
-/// "slim"}}}`; None when it names none. A cape is left out: one that failed to download would
-/// fail the skin with it (`skins::lookup`).
+/// The skin of a LittleSkin profile answer, whose base64-encoded `textures` property carries
+/// `{"textures": {"SKIN": {"url": ..., "metadata": {"model": "slim"}}}}`; None when it names
+/// none. A cape is left out: one that failed to download would fail the skin with it
+/// (`skins::lookup`).
 pub fn parse(json: &str) -> Option<Textures> {
     let answer: serde_json::Value = serde_json::from_str(json).ok()?;
-    let skin = &answer["SKIN"];
+    let encoded = answer["properties"]
+        .as_array()?
+        .iter()
+        .find(|property| property["name"] == "textures")?
+        ["value"]
+        .as_str()?;
+    let decoded = base64::engine::general_purpose::STANDARD.decode(encoded).ok()?;
+    let payload: serde_json::Value = serde_json::from_slice(&decoded).ok()?;
+    let skin = &payload["textures"]["SKIN"];
     let url = skin["url"].as_str()?;
     Some(Textures {
         skin: Some(url.to_owned()),
@@ -45,19 +56,19 @@ pub fn parse(json: &str) -> Option<Textures> {
 /// The most names kept on disk: a session on a busy server does not grow the file without end.
 const KEPT_NAMES: usize = 512;
 
-/// What Ely.by answered for a name: its skin, or None for a name without one.
+/// What LittleSkin answered for a name: its skin, or None for a name without one.
 type Answer = Option<Textures>;
 
-/// Names asked of Ely.by and what it answered, this session and the last ones.
+/// Names asked of LittleSkin and what it answered, this session and the last ones.
 pub struct Lookup {
-    /// This session's answers, by the name in lower case (Ely.by tells names apart without case).
+    /// This session's answers, by the name in lower case (LittleSkin tells names apart without case).
     answers: HashMap<String, Answer>,
     /// Asked this session, not answered yet.
     asked: HashSet<String>,
     /// The answers kept on disk (`keep_in`), shown until this session's come.
     kept: HashMap<String, Answer>,
     file: Option<PathBuf>,
-    /// None when Ely.by gave no answer (offline, a timeout): what was kept stays.
+    /// None when LittleSkin gave no answer (offline, a timeout): what was kept stays.
     send: Sender<(String, Option<Answer>)>,
     done: Receiver<(String, Option<Answer>)>,
 }
@@ -93,7 +104,7 @@ impl Lookup {
         self.file = Some(file);
     }
 
-    /// `name`'s skin on Ely.by: this session's answer, else the one kept from the last (None
+    /// `name`'s skin on LittleSkin: this session's answer, else the one kept from the last (None
     /// before either, and for a name without one); asked the first time.
     pub fn textures(&mut self, name: &str) -> Option<Textures> {
         self.receive();
@@ -108,19 +119,19 @@ impl Lookup {
             let send = self.send.clone();
             let ask = key.clone();
             let asked = std::thread::Builder::new()
-                .name("ely.by".into())
+                .name("littleskin".into())
                 .spawn(move || {
                     let answer = fetch(&ask);
                     let _ = send.send((ask, answer));
                 });
             if let Err(e) = asked {
-                log::warn!("Horizon: Ely.by skin: {e}");
+                log::warn!("Horizon: LittleSkin skin: {e}");
             }
         }
         self.kept.get(&key).cloned().flatten()
     }
 
-    /// Whether `name` waits for Ely.by with nothing kept to show meanwhile.
+    /// Whether `name` waits for LittleSkin with nothing kept to show meanwhile.
     pub fn waiting(&mut self, name: &str) -> bool {
         self.receive();
         let key = name.to_ascii_lowercase();
@@ -161,7 +172,7 @@ impl Lookup {
                 let _ = std::fs::create_dir_all(dir);
             }
             if let Err(e) = std::fs::write(file, serde_json::Value::Object(names).to_string()) {
-                log::warn!("Horizon: could not keep Ely.by's skins: {e}");
+                log::warn!("Horizon: could not keep LittleSkin's skins: {e}");
             }
         }
     }
@@ -183,19 +194,24 @@ fn answer_of(value: &serde_json::Value) -> Answer {
     })
 }
 
-/// Ely.by's answer for `name`: Some(its skin, or None for a name without one), None when it gave
-/// no answer.
+/// LittleSkin's answer for `name`: Some(its skin, or None for a name without one), None when it
+/// gave no answer.
 fn fetch(name: &str) -> Option<Answer> {
     use std::io::Read;
-    let response = ureq::AgentBuilder::new()
+    // No profile for the name: 204, or 200 with an empty answer (a name without a skin).
+    let response = match ureq::AgentBuilder::new()
         .timeout(std::time::Duration::from_secs(15))
         .build()
-        .get(&format!("{TEXTURES}{name}"))
-        .call()
-        .ok()?;
+        .post(PROFILES)
+        .set("Content-Type", "application/json; charset=utf-8")
+        .send_string(&serde_json::json!([{"name": name}]).to_string())
+    {
+        Ok(response) => response,
+        Err(ureq::Error::Status(204, _)) => return Some(None),
+        Err(_) => return None,
+    };
     if response.status() != 200 {
-        // 204: a name without a skin.
-        return (response.status() == 204).then_some(None);
+        return None;
     }
     let mut body = String::new();
     response
@@ -203,7 +219,8 @@ fn fetch(name: &str) -> Option<Answer> {
         .take(64 << 10)
         .read_to_string(&mut body)
         .ok()?;
-    Some(parse(&body))
+    let profiles: serde_json::Value = serde_json::from_str(&body).ok()?;
+    Some(profiles.as_array()?.first().and_then(parse))
 }
 
 #[cfg(test)]
@@ -212,19 +229,21 @@ mod tests {
 
     #[test]
     fn a_skin_and_its_model_from_the_answer() {
-        let wide = r#"{"SKIN":{"url":"http://ely.by/storage/skins/69c6740d2993e5d6f6a7fc92420efc29.png"}}"#;
+        let wide = r#"{"id":"64","name":"Wide","properties":[{"name":"textures","value":"eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly9saXR0bGVza2luLmNuL3N0b3JhZ2Uvc2tpbnMvd2lkZS5wbmcifX19"}]}"#;
         let t = parse(wide).unwrap();
         assert_eq!(
             t.skin.as_deref(),
-            Some("http://ely.by/storage/skins/69c6740d2993e5d6f6a7fc92420efc29.png")
+            Some("http://littleskin.cn/storage/skins/wide.png")
         );
         assert!(!t.slim && !t.signed && t.cape.is_none());
-        let slim = r#"{"SKIN":{"url":"http://ely.by/storage/skins/a.png","metadata":{"model":"slim"}},"CAPE":{"url":"http://ely.by/storage/cloaks/b.png"}}"#;
+        let slim = r#"{"id":"64","name":"Slim","properties":[{"name":"textures","value":"eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly9saXR0bGVza2luLmNuL3N0b3JhZ2Uvc2tpbnMvYS5wbmciLCJtZXRhZGF0YSI6eyJtb2RlbCI6InNsaW0ifX19fQ=="}]}"#;
         let t = parse(slim).unwrap();
         assert!(t.slim);
         assert!(t.cape.is_none());
         assert!(parse("").is_none());
-        assert!(parse(r#"{"CAPE":{"url":"http://ely.by/storage/cloaks/b.png"}}"#).is_none());
+        // A profile without a textures property, and one whose skin is only a cape.
+        assert!(parse(r#"{"id":"64","name":"Bare","properties":[]}"#).is_none());
+        assert!(parse(r#"{"id":"64","name":"Caped","properties":[{"name":"textures","value":"eyJ0ZXh0dXJlcyI6eyJDQVBFIjp7InVybCI6Imh0dHA6Ly9saXR0bGVza2luLmNuL3N0b3JhZ2UvY2xvYWtzL2IucG5nIn19fQ=="}]}"#).is_none());
     }
 
     #[test]
@@ -242,7 +261,7 @@ mod tests {
 
     #[test]
     fn turned_off_and_on_in_the_player_file() {
-        let dir = std::env::temp_dir().join(format!("horizon-elyby-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("horizon-littleskin-{}", std::process::id()));
         let _ = std::fs::create_dir_all(&dir);
         assert!(enabled(&dir));
         set_enabled(&dir, false).unwrap();
@@ -254,11 +273,11 @@ mod tests {
 
     #[test]
     fn answers_kept_on_disk_show_at_the_next_start() {
-        let dir = std::env::temp_dir().join(format!("horizon-elyby-kept-{}", std::process::id()));
-        let file = dir.join("elyby.json");
+        let dir = std::env::temp_dir().join(format!("horizon-littleskin-kept-{}", std::process::id()));
+        let file = dir.join("littleskin.json");
         let _ = std::fs::remove_dir_all(&dir);
         let skin = Textures {
-            skin: Some("http://ely.by/storage/skins/a.png".into()),
+            skin: Some("http://littleskin.cn/storage/skins/a.png".into()),
             slim: true,
             ..Textures::default()
         };
@@ -289,10 +308,10 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "asks skinsystem.ely.by"]
-    fn ely_by_answers_a_known_name() {
-        let t = fetch("ErickSkrauch").expect("an answer").expect("a skin");
-        assert!(t.skin.unwrap().contains("ely.by"));
+    #[ignore = "asks littleskin.cn"]
+    fn littleskin_answers_a_known_name() {
+        let t = fetch("Notch").expect("an answer").expect("a skin");
+        assert!(t.skin.unwrap().contains("littleskin"));
         assert_eq!(fetch("zzzznosuchname123"), Some(None));
     }
 }

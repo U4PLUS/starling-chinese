@@ -11,6 +11,9 @@ publish = false
 ureq = { version = "2", default-features = false, features = ["json", "tls"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# LittleSkin (and any authlib-injector server) returns the profile's textures property
+# base64-encoded inside the session-server profile, so decoding it lives here.
+base64 = "0.22"
 sha1 = "0.10"
 sha2 = "0.10"
 # The Java runtime that prepares the game files on a phone comes as a .tar.xz.

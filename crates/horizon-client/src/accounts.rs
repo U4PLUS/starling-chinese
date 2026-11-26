@@ -1,4 +1,4 @@
-//! Starling's switchable Microsoft, Ely.by and offline profiles inside the game (crate starling-account; a phone has no
+//! Starling's switchable Microsoft, LittleSkin and offline profiles inside the game (crate starling-account; a phone has no
 //! launcher to sign in for it): the secrets sealed by the platform's keystore (the Android
 //! Keystore) in the private folder, the account list beside them, and the session handed to
 //! [`crate::auth`] for online-mode servers, renewed in the background before it runs out. The
@@ -6,7 +6,7 @@
 //! keystore (a desktop build, `STARLING_ACCOUNTS=1`) the secrets stay in memory for the run.
 pub use starling_account::files::Progress;
 use starling_account::files::{Pins, Sources, Wanted};
-pub use starling_account::skins::ELY_SKINS;
+pub use starling_account::skins::LITTLE_SKINS;
 pub use starling_account::{Account, Provider, SignInStage};
 use starling_account::{Endpoints, MemoryStore, SecretStore, SignIn, SignInState};
 use std::path::PathBuf;
@@ -121,8 +121,8 @@ fn use_session(account: &Account, secrets: &starling_account::Secrets) -> Result
         starling_account::Provider::Microsoft => {
             crate::auth::AuthSession::new(&account.name, uuid, secrets.access_token())
         }
-        starling_account::Provider::Ely | starling_account::Provider::Yggdrasil => {
-            crate::auth::AuthSession::ely(&account.name, uuid, secrets.access_token())
+        starling_account::Provider::LittleSkin | starling_account::Provider::Yggdrasil => {
+            crate::auth::AuthSession::littleskin(&account.name, uuid, secrets.access_token())
         }
     };
     session.xuid = secrets.xuid().map(str::to_owned);
@@ -259,15 +259,15 @@ pub fn player_skin() -> Option<(String, bool)> {
     }
 }
 
-/// The playing Ely.by account's skin as Ely.by named it at the sign-in or the last renewal
-/// (`starling_account::ely`, kept with the account): its URL and whether its arms are slim. None
-/// for another profile, or an Ely.by account Ely.by named no skin for.
-/// The playing account's skin when it comes from a third-party source (Ely.by or a skin
+/// The playing LittleSkin account's skin as its server reported it at the sign-in or the last
+/// renewal (`starling_account::littleskin`, kept with the account): its URL and whether its arms
+/// are slim. None for another profile, or an account the server named no skin for.
+/// The playing account's skin when it comes from a third-party source (LittleSkin or a skin
 /// server), which the game must read from the URL stored on the account, not Mojang's.
-pub fn ely_skin() -> Option<(String, bool)> {
+pub fn littleskin_skin() -> Option<(String, bool)> {
     match player()? {
         starling_account::Player::Account(account)
-            if matches!(account.provider, Provider::Ely | Provider::Yggdrasil) =>
+            if matches!(account.provider, Provider::LittleSkin | Provider::Yggdrasil) =>
         {
             account.skin.map(|(url, model)| (url, model == "slim"))
         }
@@ -276,14 +276,14 @@ pub fn ely_skin() -> Option<(String, bool)> {
 }
 
 /// Where the playing profile's skin can go besides this game: a Microsoft account's profile (and
-/// how the last upload there went), Ely.by's website, or nowhere for an offline one.
+/// how the last upload there went), LittleSkin's website, or nowhere for an offline one.
 pub fn skin_cloud() -> crate::own_skin::Cloud {
     use crate::own_skin::{Cloud, Upload};
     let Some(starling_account::Player::Account(account)) = player() else {
         return Cloud::Local;
     };
     match account.provider {
-        Provider::Ely | Provider::Yggdrasil => Cloud::Ely,
+        Provider::LittleSkin | Provider::Yggdrasil => Cloud::LittleSkin,
         Provider::Microsoft => {
             let key = account.key();
             Cloud::Microsoft(match &shared().skin_upload {
@@ -446,15 +446,15 @@ pub fn remove(key: String) {
         finish(generation, result);
     });
 }
-pub fn sign_in_ely(username: String, password: String, otp: String) {
+pub fn sign_in_littleskin(username: String, password: String, otp: String) {
     let (generation, cancel) = begin(State::Starting);
     let working = KeepWorking::new(
         &format!("sign-in-{generation}"),
-        &crate::lang::get("starling.account.ely_working"),
+        &crate::lang::get("starling.account.littleskin_working"),
     );
     std::thread::spawn(move || {
         let _working = working;
-        let result = starling_account::keep_ely(
+        let result = starling_account::keep_littleskin(
             store().as_ref(),
             &dir(),
             &username,
@@ -480,7 +480,7 @@ pub fn sign_in_yggdrasil(
     let (generation, cancel) = begin(State::Starting);
     let working = KeepWorking::new(
         &format!("sign-in-{generation}"),
-        &crate::lang::get("starling.account.ely_working"),
+        &crate::lang::get("starling.account.littleskin_working"),
     );
     std::thread::spawn(move || {
         let _working = working;

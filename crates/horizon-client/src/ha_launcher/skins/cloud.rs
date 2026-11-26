@@ -1,6 +1,7 @@
 //! Provider-specific cloud operations. Local selection never calls these APIs.
 use super::{MAX_IMPORT_BYTES, Model, read_cape, read_skin};
 use crate::ha_launcher::account::{Account, Provider, Secrets};
+use base64::Engine as _;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -128,28 +129,47 @@ pub fn fetch(account: &Account, secrets: &Secrets, root: &Path) -> Result<Cache,
     }
     let snapshot = match account.provider {
         Provider::Microsoft => microsoft_snapshot(PROFILE, secrets)?,
-        Provider::Ely | Provider::Yggdrasil => {
-            // Ely.by's textures live on a fixed host; a skin server's live on its own, which
-            // the account recorded at sign-in.
-            let base = if account.provider == Provider::Ely {
-                "https://skinsystem.ely.by".to_string()
+        Provider::LittleSkin | Provider::Yggdrasil => {
+            // A skin server keeps its textures on its own session server, which the account
+            // recorded at sign-in; LittleSkin's is its built-in authlib-injector root. The
+            // profile's `textures` property carries the skin base64-encoded.
+            let base = if account.auth_server.is_empty() {
+                "https://littleskin.cn/api/yggdrasil".to_string()
             } else {
                 account.auth_server.clone()
             };
-            let value = response(
+            let profile = response(
                 crate::ha_launcher::account::request_to(
                     "GET",
-                    &format!("{base}/textures/{}", account.name),
+                    &format!(
+                        "{base}/sessionserver/session/minecraft/profile/{}",
+                        account.uuid
+                    ),
                 )
                 .call(),
             )?;
+            let encoded = profile["properties"]
+                .as_array()
+                .and_then(|properties| {
+                    properties
+                        .iter()
+                        .find(|property| property["name"] == "textures")
+                })
+                .and_then(|property| property["value"].as_str())
+                .ok_or("The skin server answered no textures.")?;
+            let decoded = base64::engine::general_purpose::STANDARD
+                .decode(encoded)
+                .map_err(|_| "Invalid cloud profile response.".into())?;
+            let value: Value =
+                serde_json::from_slice(&decoded).map_err(|_| "Invalid cloud profile response.")?;
+            let textures = &value["textures"];
             let texture = |key: &str| {
-                value[key]["url"].as_str().map(|url| Texture {
-                    id: format!("ely-{key}"),
-                    title: format!("Current Ely.by {}", key.to_lowercase()),
+                textures[key]["url"].as_str().map(|url| Texture {
+                    id: format!("littleskin-{key}"),
+                    title: format!("Current LittleSkin {}", key.to_lowercase()),
                     url: url.into(),
                     active: true,
-                    slim: value[key]["metadata"]["model"] == "slim",
+                    slim: textures[key]["metadata"]["model"] == "slim",
                 })
             };
             Snapshot {
@@ -184,7 +204,7 @@ fn texture_url(text: &str) -> Result<String, String> {
     let mut url = url::Url::parse(text).map_err(|_| "Invalid cloud texture URL.")?;
     let allowed = matches!(
         url.host_str(),
-        Some("textures.minecraft.net" | "ely.by" | "skinsystem.ely.by")
+        Some("textures.minecraft.net" | "littleskin.cn")
     );
     if !allowed
         || !url.username().is_empty()
@@ -243,7 +263,7 @@ fn upload_skin_at(
         return Err("Account and session providers do not match.".into());
     }
     if account.provider != Provider::Microsoft {
-        return Err("Ely.by cloud skins are managed on ely.by; its public API does not expose skin uploads.".into());
+        return Err("LittleSkin cloud skins are managed on littleskin.cn; its public API does not expose skin uploads.".into());
     }
     let image = read_skin(bytes)?;
     let mut png = std::io::Cursor::new(vec![]);
@@ -282,7 +302,7 @@ fn activate_cape_at(
     }
     if account.provider != Provider::Microsoft {
         return Err(
-            "Ely.by does not offer user-selectable cloud capes. Choose a local cape instead."
+            "LittleSkin does not offer user-selectable cloud capes. Choose a local cape instead."
                 .into(),
         );
     }
@@ -412,11 +432,11 @@ mod tests {
         assert_eq!(snapshot.capes[0].id, "owned");
         assert!(!snapshot.capes[0].active);
         assert!(texture_url("https://textures.minecraft.net.attacker.test/x").is_err());
-        assert!(texture_url("https://token@ely.by/x").is_err());
+        assert!(texture_url("https://token@littleskin.cn/x").is_err());
         assert!(texture_url("file:///private").is_err());
         assert_eq!(
-            texture_url("http://ely.by/storage/skin.png").unwrap(),
-            "https://ely.by/storage/skin.png"
+            texture_url("http://littleskin.cn/storage/skin.png").unwrap(),
+            "https://littleskin.cn/storage/skin.png"
         );
     }
 }

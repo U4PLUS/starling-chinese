@@ -161,7 +161,7 @@ pub fn remove_profile_if(
     }
     list.save(dir)
 }
-pub fn keep_ely(
+pub fn keep_littleskin(
     store: &dyn SecretStore,
     dir: &Path,
     username: &str,
@@ -169,7 +169,7 @@ pub fn keep_ely(
     otp: &str,
     cancelled: &dyn Fn() -> bool,
 ) -> Result<Account, String> {
-    let (account, secrets) = ely::authenticate(username, password, otp)?;
+    let (account, secrets) = littleskin::authenticate(username, password, otp)?;
     let _lock = account_lock();
     if cancelled() {
         return Err("starling.account.error.sign_in_cancelled".into());
@@ -180,9 +180,9 @@ pub fn keep_ely(
     Ok(account)
 }
 
-/// Signs in to a third-party skin server and keeps the account, the way [`keep_ely`] keeps
-/// Ely.by's. The server's base URL rides on the account and its secrets, so renewal goes back
-/// to the same host.
+/// Signs in to a third-party skin server and keeps the account, the way [`keep_littleskin`]
+/// keeps LittleSkin's. The server's base URL rides on the account and its secrets, so renewal
+/// goes back to the same host.
 pub fn keep_yggdrasil(
     store: &dyn SecretStore,
     dir: &Path,
@@ -289,14 +289,14 @@ mod tests {
         let store = MemoryStore::default();
         let mut list = Accounts::default();
         let (ms, msec) = entry(Provider::Microsoft);
-        let (ely, esec) = entry(Provider::Ely);
+        let (ls, esec) = entry(Provider::LittleSkin);
         list.add(&store, ms.clone(), &msec).unwrap();
-        list.add(&store, ely.clone(), &esec).unwrap();
+        list.add(&store, ls.clone(), &esec).unwrap();
         list.save(&dir.0).unwrap();
         assert_eq!(list.accounts.len(), 2);
         assert_ne!(
             store.get(&ms.key()).unwrap(),
-            store.get(&ely.key()).unwrap()
+            store.get(&ls.key()).unwrap()
         );
         assert_eq!(
             session(&Endpoints::live(), &store, &dir.0)
@@ -306,11 +306,11 @@ mod tests {
                 .access_token(),
             "private-Ely"
         );
-        remove_profile(&store, &dir.0, &ely.key()).unwrap();
+        remove_profile(&store, &dir.0, &ls.key()).unwrap();
         let list = Accounts::load(&dir.0);
         assert_eq!(list.accounts, vec![ms.clone()]);
         assert!(store.get(&ms.key()).unwrap().is_some());
-        assert!(store.get(&ely.key()).unwrap().is_none());
+        assert!(store.get(&ls.key()).unwrap().is_none());
         let mut list = list;
         assert!(list.add(&store, ms, &esec).is_err());
     }
@@ -351,7 +351,7 @@ mod tests {
         let dir = Scratch::new();
         let store = MemoryStore::default();
         add_offline(&dir.0, "LocalPlayer").unwrap();
-        let (a, _) = entry(Provider::Ely);
+        let (a, _) = entry(Provider::LittleSkin);
         let mut list = Accounts::load(&dir.0);
         list.accounts.push(a.clone());
         list.save(&dir.0).unwrap();

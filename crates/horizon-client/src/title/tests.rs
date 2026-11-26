@@ -1736,7 +1736,7 @@ fn the_account_screen_offers_signing_in_and_goes_back() {
         .map(|b| b.label)
         .collect();
     assert!(labels.contains(&"Microsoft".to_owned()));
-    assert!(labels.contains(&"Ely.by".to_owned()));
+    assert!(labels.contains(&"LittleSkin".to_owned()));
     assert!(labels.contains(&lang::get("starling.account.offline")));
     f.title.escape();
     assert_eq!(
@@ -3082,7 +3082,7 @@ fn account_secret_fields_accept_credentials_without_chat_filtering_or_debug_disc
     let mut f = Fixture::new();
     f.title.mode = Mode::Account(account::Screen::default());
     f.click(&lang::get("starling.account.add"));
-    f.click("Ely.by");
+    f.click("LittleSkin");
     f.title.type_text("player@example.test");
     f.title.tab_dir(false, (480.0, 262.0));
     assert!(f.title.password_focused());

@@ -32,7 +32,7 @@ pub(super) struct Login {
     pub offline: bool,
     pub saved_accounts: Vec<Account>,
     pub account_offset: usize,
-    pub ely: bool,
+    pub littleskin: bool,
     /// The skin-server flow: adding a new server, the URL being typed, the servers on offer,
     /// and which one is being signed into.
     pub adding_server: bool,
@@ -59,7 +59,7 @@ impl Login {
             offline: false,
             saved_accounts: vec![],
             account_offset: 0,
-            ely: false,
+            littleskin: false,
             adding_server: false,
             server_url: String::new(),
             server_name: String::new(),
@@ -105,7 +105,7 @@ impl Login {
     /// Opens the sign-in form for a saved skin server.
     pub(super) fn open_server(&mut self, url: String, name: String) {
         self.close();
-        self.ely = true;
+        self.littleskin = true;
         self.active_server = Some(starling_account::servers::Server { url, name });
         self.username.clear();
         self.password.clear();
@@ -118,7 +118,7 @@ impl Login {
             .as_deref()
             .and_then(|name| self.saved_accounts.iter().find(|a| a.name == name))
             .map(|a| match a.provider {
-                account::Provider::Ely => "Ely.by",
+                account::Provider::LittleSkin => "LittleSkin",
                 account::Provider::Microsoft => "Microsoft",
                 account::Provider::Yggdrasil => "Skin server",
             })
@@ -161,7 +161,7 @@ impl Login {
     }
     pub fn start_device(&mut self, id: &str) {
         self.close();
-        self.ely = false;
+        self.littleskin = false;
         self.choosing = false;
         self.visible = true;
         let id = id.trim();
@@ -206,12 +206,12 @@ impl Login {
         }
         completed
     }
-    pub fn start_ely(&mut self) {
+    pub fn start_littleskin(&mut self) {
         if let Some(task) = self.task.take() {
             task.cancel();
         }
         self.message.clear();
-        self.task = Some(SignIn::start_ely(
+        self.task = Some(SignIn::start_littleskin(
             self.username.clone(),
             std::mem::take(&mut self.password),
             std::mem::take(&mut self.otp),
@@ -238,9 +238,9 @@ impl Login {
     }
     pub fn field(&self, name: &str) -> Option<&str> {
         match name {
-            "ely_username" => Some(&self.username),
-            "ely_password" => Some(&self.password),
-            "ely_otp" => Some(&self.otp),
+            "littleskin_username" => Some(&self.username),
+            "littleskin_password" => Some(&self.password),
+            "littleskin_otp" => Some(&self.otp),
             "server_url" => Some(&self.server_url),
             "server_name" => Some(&self.server_name),
             _ => None,
@@ -252,9 +252,9 @@ impl Login {
         output: &crate::ha_launcher::client::osk::Output,
     ) -> bool {
         let value = match field {
-            Some("ely_username") => &mut self.username,
-            Some("ely_password") => &mut self.password,
-            Some("ely_otp") => &mut self.otp,
+            Some("littleskin_username") => &mut self.username,
+            Some("littleskin_password") => &mut self.password,
+            Some("littleskin_otp") => &mut self.otp,
             Some("server_url") => &mut self.server_url,
             Some("server_name") => &mut self.server_name,
             _ => return false,
@@ -445,10 +445,10 @@ impl Login {
                 "Add a skin server",
                 "Enter the server's Yggdrasil login address".into(),
             )
-        } else if self.ely {
+        } else if self.littleskin {
             (
-                "Ely.by account",
-                "Credentials go only to authserver.ely.by".into(),
+                "LittleSkin account",
+                "Credentials go only to littleskin.cn".into(),
             )
         } else if self.offline {
             (
@@ -539,7 +539,7 @@ impl Login {
                     Action::MicrosoftAccount,
                     "M",
                 ),
-                ("Ely.by", "Alternative auth", Action::ElySignIn, "E"),
+                ("LittleSkin", "Alternative auth", Action::LittleSkinSignIn, "E"),
                 (
                     "Offline",
                     "Play without signing in",
@@ -662,8 +662,8 @@ impl Login {
                 .take(3)
                 .enumerate()
             {
-                let detail = if account.provider == account::Provider::Ely {
-                    "Ely.by"
+                let detail = if account.provider == account::Provider::LittleSkin {
+                    "LittleSkin"
                 } else {
                     "Microsoft"
                 };
@@ -783,24 +783,24 @@ impl Login {
             return;
         }
 
-        if self.ely {
+        if self.littleskin {
             for (i, (name, label, value, secret, placeholder)) in [
                 (
-                    "ely_username",
+                    "littleskin_username",
                     "Username or email",
                     self.username.as_str(),
                     false,
                     "Username or email",
                 ),
                 (
-                    "ely_password",
+                    "littleskin_password",
                     "Password",
                     self.password.as_str(),
                     true,
                     "Password",
                 ),
                 (
-                    "ely_otp",
+                    "littleskin_otp",
                     "Two-factor code",
                     self.otp.as_str(),
                     true,
@@ -829,7 +829,7 @@ impl Login {
                 );
                 targets.push(([x + 20.0, fy, w - 40.0, field_h], Action::Field(name)));
             }
-            if editing.is_some_and(|field| field.starts_with("ely_")) {
+            if editing.is_some_and(|field| field.starts_with("littleskin_")) {
                 button(
                     ui,
                     targets,
@@ -862,12 +862,12 @@ impl Login {
                 } else if for_server {
                     "Sign in to server"
                 } else {
-                    "Sign in to Ely.by"
+                    "Sign in to LittleSkin"
                 },
                 if for_server {
                     Action::SubmitServer
                 } else {
-                    Action::SubmitEly
+                    Action::SubmitLittleSkin
                 },
                 true,
             );

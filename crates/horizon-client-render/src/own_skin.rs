@@ -5,7 +5,7 @@
 //! sends for the profile, as vanilla's protocol has it, unless a Microsoft account uploads it to
 //! its profile (`upload_png`).
 //!
-//! Each of Starling's profiles (Microsoft, Ely.by, offline) keeps its own choice, as Horizon
+//! Each of Starling's profiles (Microsoft, LittleSkin, offline) keeps its own choice, as Horizon
 //! Android's wardrobe keeps one per account (`SkinChoice::for_profile`).
 use crate::offline_name;
 use std::io::Read;
@@ -143,8 +143,8 @@ pub enum Cloud {
     Local,
     /// A Microsoft account: the chosen skin can go to its profile; how the last upload went.
     Microsoft(Upload),
-    /// An Ely.by account: its skin is changed on ely.by, which takes no uploads from launchers.
-    Ely,
+    /// A LittleSkin account: its skin is changed on littleskin.cn, which takes no uploads from launchers.
+    LittleSkin,
 }
 
 /// A skin's upload to a Microsoft account's profile.

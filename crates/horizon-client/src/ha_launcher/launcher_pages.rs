@@ -269,10 +269,10 @@ pub(super) enum Action {
     Account,
     AddAccount,
     SignIn,
-    ElySignIn,
+    LittleSkinSignIn,
     MicrosoftAccount,
     OfflineAccount,
-    SubmitEly,
+    SubmitLittleSkin,
     /// Skin-server flow: open the add-server form, verify the typed URL, pick a saved server,
     /// sign in to it, or forget it.
     SkinServerAdd,
@@ -6105,10 +6105,10 @@ impl Launcher {
                 self.login.refresh_status();
                 self.login.visible = true;
                 self.login.offline = false;
-                self.login.ely = false;
+                self.login.littleskin = false;
                 if self.login.signed_in {
                     // Already signed in: open the selector, with the current
-                    // Microsoft/Ely.by account called out, instead of asking
+                    // Microsoft/LittleSkin account called out, instead of asking
                     // the player to choose a provider again.
                     self.login.providers = false;
                     self.login.choosing = true;
@@ -6122,13 +6122,13 @@ impl Launcher {
                 self.login.choosing = false;
                 self.login.providers = true;
                 self.login.offline = false;
-                self.login.ely = false;
+                self.login.littleskin = false;
                 self.login.visible = true;
             }
             Some(Action::OfflineAccount | Action::MicrosoftAccount) => {
                 self.login.providers = false;
                 self.login.offline = matches!(action, Some(Action::OfflineAccount));
-                self.login.ely = false;
+                self.login.littleskin = false;
                 self.login.choosing = false;
                 self.login.visible = true;
             }
@@ -6136,7 +6136,7 @@ impl Launcher {
                 self.login.providers = false;
                 self.login.refresh_status();
                 self.login.choosing = true;
-                self.login.ely = false;
+                self.login.littleskin = false;
             }
             Some(Action::SavedPage(next)) => {
                 if next && self.login.account_offset + 3 < self.login.saved_accounts.len() {
@@ -6168,17 +6168,17 @@ impl Launcher {
                 self.login.refresh_status();
                 self.refresh_wardrobe_account();
             }
-            Some(Action::ElySignIn) => {
+            Some(Action::LittleSkinSignIn) => {
                 self.login.providers = false;
                 self.login.close();
-                self.login.ely = true;
+                self.login.littleskin = true;
                 self.login.visible = true;
             }
-            Some(Action::SubmitEly) => {
+            Some(Action::SubmitLittleSkin) => {
                 self.catalog.editing = None;
                 crate::ha_launcher::platform::hide();
                 if !self.login.pending() {
-                    self.login.start_ely();
+                    self.login.start_littleskin();
                 }
             }
             Some(Action::SkinServerAdd) => {
@@ -6333,7 +6333,7 @@ impl Launcher {
             Some(Action::Field(name)) => {
                 if let Some(value) = self.login.field(name) {
                     self.catalog.editing = Some(name);
-                    if name == "ely_password" || name == "ely_otp" {
+                    if name == "littleskin_password" || name == "littleskin_otp" {
                         crate::ha_launcher::platform::show_secret(value);
                     } else {
                         crate::ha_launcher::platform::show(value);

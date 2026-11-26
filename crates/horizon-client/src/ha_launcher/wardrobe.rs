@@ -320,12 +320,13 @@ impl Wardrobe {
             self.note = "Offline appearance is local to this installation.".into();
             return;
         };
-        if provider == Provider::Ely && action.is_some() {
+        if provider == Provider::LittleSkin && action.is_some() {
             self.note =
-                "Ely.by cloud skins are managed at ely.by. Custom capes can be applied locally."
+                "LittleSkin cloud skins are managed at littleskin.cn. Custom capes can be applied locally."
                     .into();
-            if let Err(error) = crate::ha_launcher::platform::open_login_url("https://ely.by/skins")
-            {
+            if let Err(error) = crate::ha_launcher::platform::open_login_url(
+                "https://littleskin.cn/user/profile",
+            ) {
                 self.note = error;
             }
             return;
@@ -1201,7 +1202,7 @@ impl Wardrobe {
                         if self.provider == Some(Provider::Microsoft) {
                             "Upload Selected Skin to Microsoft Profile"
                         } else {
-                            "Manage Ely.by Cloud Skin on Website"
+                            "Manage LittleSkin Cloud Skin on Website"
                         },
                         Action::WardrobeUpload,
                         false,

@@ -84,7 +84,7 @@ enum Action {
     #[cfg(target_os = "android")]
     HorizonDone,
     SignIn,
-    Ely,
+    LittleSkin,
     AccountBack,
     SubmitForm,
     Register,
@@ -272,8 +272,8 @@ fn account_step(setup: &Setup, state: State) -> Step {
             Step::Start
         }
         State::Resuming => Step::Talking(tr("restoring")),
-        State::Starting => Step::Talking(tr(if setup.provider == Some(Kind::Ely) {
-            "ely_working"
+        State::Starting => Step::Talking(tr(if setup.provider == Some(Kind::LittleSkin) {
+            "littleskin_working"
         } else {
             "requesting_code"
         })),
@@ -556,7 +556,7 @@ fn buttons(step: &Step) -> Vec<(String, Action)> {
         ],
         Step::Start => vec![
             (tr("setup.microsoft"), Action::SignIn),
-            (tr("setup.ely_title"), Action::Ely),
+            (tr("setup.littleskin_title"), Action::LittleSkin),
             (tr("setup.offline_title"), Action::Offline),
             (tr("setup.import"), Action::Pick),
         ],
@@ -1050,11 +1050,11 @@ impl Loading {
         match action {
             #[cfg(target_os = "android")]
             Action::FinishOnboarding(directly) => self.finish_onboarding(directly),
-            Action::Ely => {
-                self.setup.provider = Some(Kind::Ely);
+            Action::LittleSkin => {
+                self.setup.provider = Some(Kind::LittleSkin);
                 self.setup.dismiss_signin_error = true;
                 self.setup.cancelled = true;
-                self.setup.form = Some(Form::new(Kind::Ely));
+                self.setup.form = Some(Form::new(Kind::LittleSkin));
             }
             Action::SubmitForm => {
                 if let Some(form) = &mut self.setup.form {
@@ -1080,7 +1080,7 @@ impl Loading {
                 }
             }
             Action::Register => {
-                let _ = horizon_client::platform::open_link("https://account.ely.by/register");
+                let _ = horizon_client::platform::open_link("https://littleskin.cn/auth/register");
             }
             Action::CancelSignIn => {
                 accounts::cancel();
@@ -1172,7 +1172,9 @@ impl Loading {
                     preparer::start(self.vanilla_root.clone())
                 }
                 (_, Files::Failed(_)) => accounts::download_files(),
-                _ if self.setup.provider == Some(Kind::Ely) => self.setup_action(Action::Ely),
+                _ if self.setup.provider == Some(Kind::LittleSkin) => {
+                    self.setup_action(Action::LittleSkin)
+                }
                 _ if self.setup.provider == Some(Kind::Offline) => {
                     self.setup.form = Some(Form::new(Kind::Offline));
                 }
@@ -1189,7 +1191,7 @@ mod account_tests {
     fn first_start_offers_both_providers_offline_and_import_without_losing_diagnostics_slot() {
         let actions: Vec<_> = buttons(&Step::Start).into_iter().map(|(_, a)| a).collect();
         assert!(actions.contains(&Action::SignIn));
-        assert!(actions.contains(&Action::Ely));
+        assert!(actions.contains(&Action::LittleSkin));
         assert!(actions.contains(&Action::Offline));
         assert!(actions.contains(&Action::Pick));
         assert_eq!(actions.len(), 4);
@@ -1205,7 +1207,7 @@ mod account_tests {
             Step::Start
         );
         let a = accounts::Account {
-            provider: accounts::Provider::Ely,
+            provider: accounts::Provider::LittleSkin,
             uuid: "0123456789abcdef0123456789abcdef".into(),
             name: "Player".into(),
             skin: None,
@@ -1216,16 +1218,16 @@ mod account_tests {
     #[test]
     fn setup_keeps_the_actual_provider_progress_and_error() {
         let setup = Setup {
-            provider: Some(Kind::Ely),
+            provider: Some(Kind::LittleSkin),
             ..Default::default()
         };
         assert_eq!(
             account_step(&setup, State::Starting),
-            Step::Talking(tr("ely_working"))
+            Step::Talking(tr("littleskin_working"))
         );
         let error = account_step(
             &setup,
-            State::Failed("starling.account.error.ely_otp_needed".into()),
+            State::Failed("starling.account.error.littleskin_otp_needed".into()),
         );
         assert!(matches!(error, Step::SignInFailed(_)));
         let actions = buttons(&error);

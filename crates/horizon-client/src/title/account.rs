@@ -20,7 +20,7 @@ enum Page {
     Signing,
     Files,
     Offline,
-    Ely,
+    LittleSkin,
     Remove,
 }
 #[derive(Clone, Default)]
@@ -66,7 +66,7 @@ fn label(p: &Player) -> String {
         Player::Offline(_) => tr("offline"),
         Player::Account(a) => match a.provider {
             Provider::Microsoft => "Microsoft".into(),
-            Provider::Ely => "Ely.by".into(),
+            Provider::LittleSkin => "LittleSkin".into(),
             Provider::Yggdrasil => {
                 if a.auth_name.is_empty() { "Skin server".into() } else { a.auth_name.clone().into() }
             }
@@ -83,7 +83,7 @@ impl Screen {
             State::Starting => Some(tr(if self.microsoft {
                 "requesting_code"
             } else {
-                "ely_working"
+                "littleskin_working"
             })),
             State::Resuming => Some(tr("restoring")),
             State::Progress(stage) => Some(crate::lang::get(stage.key())),
@@ -112,14 +112,14 @@ impl Screen {
         }
         match (self.page, self.focus) {
             (Page::Offline, 0) => Some((("account-name", 0), &mut self.username, 16)),
-            (Page::Ely, 0) => Some((("account-login", 0), &mut self.username, 254)),
-            (Page::Ely, 1) => Some((("account-password", 0), &mut self.password, 256)),
-            (Page::Ely, 2) => Some((("account-otp", 0), &mut self.otp, 6)),
+            (Page::LittleSkin, 0) => Some((("account-login", 0), &mut self.username, 254)),
+            (Page::LittleSkin, 1) => Some((("account-password", 0), &mut self.password, 256)),
+            (Page::LittleSkin, 2) => Some((("account-otp", 0), &mut self.otp, 6)),
             _ => None,
         }
     }
     pub(super) fn field_rect(&self, w: f32) -> Option<[f32; 4]> {
-        matches!(self.page, Page::Offline | Page::Ely).then(|| {
+        matches!(self.page, Page::Offline | Page::LittleSkin).then(|| {
             [
                 (w / 2.0).floor() - 100.0,
                 50.0 + 38.0 * self.focus as f32,
@@ -129,7 +129,7 @@ impl Screen {
         })
     }
     pub(super) fn password_focused(&self) -> bool {
-        self.status().is_none() && self.page == Page::Ely && matches!(self.focus, 1 | 2)
+        self.status().is_none() && self.page == Page::LittleSkin && matches!(self.focus, 1 | 2)
     }
     pub(super) fn password_masked(&self) -> bool {
         self.password_focused() && (self.focus == 2 || !self.show_password)
@@ -139,7 +139,7 @@ impl Screen {
             return;
         }
         let n = match self.page {
-            Page::Ely => 3,
+            Page::LittleSkin => 3,
             Page::Offline => 1,
             _ => 0,
         };
@@ -184,7 +184,7 @@ impl Screen {
         }
         match self.page {
             Page::Signing => {}
-            Page::Offline | Page::Ely => {
+            Page::Offline | Page::LittleSkin => {
                 let fields = if self.page == Page::Offline {
                     vec![("name", &self.username, 16, "account-name")]
                 } else {
@@ -281,19 +281,19 @@ impl Screen {
             Page::Signing => vec![b(50.0, h - 28.0, 200.0, tr("done"), true, 69)],
             Page::Add => vec![
                 b(50.0, 80.0, 200.0, "Microsoft".into(), true, 60),
-                b(50.0, 104.0, 200.0, "Ely.by".into(), true, 76),
+                b(50.0, 104.0, 200.0, "LittleSkin".into(), true, 76),
                 b(50.0, 128.0, 200.0, tr("offline"), true, 77),
                 b(50.0, h - 28.0, 200.0, tr("back"), true, 70),
             ],
-            Page::Offline | Page::Ely => {
+            Page::Offline | Page::LittleSkin => {
                 let valid = !self.username.trim().is_empty()
                     && (self.page == Page::Offline || !self.password.is_empty());
                 let mut out = vec![
                     b(
-                        if self.page == Page::Ely { 0.0 } else { 50.0 },
+                        if self.page == Page::LittleSkin { 0.0 } else { 50.0 },
                         h - 52.0,
-                        if self.page == Page::Ely { 148.0 } else { 200.0 },
-                        tr(if self.page == Page::Ely {
+                        if self.page == Page::LittleSkin { 148.0 } else { 200.0 },
+                        tr(if self.page == Page::LittleSkin {
                             "log_in"
                         } else {
                             "save"
@@ -303,7 +303,7 @@ impl Screen {
                     ),
                     b(50.0, h - 28.0, 200.0, tr("back"), true, 70),
                 ];
-                if self.page == Page::Ely {
+                if self.page == Page::LittleSkin {
                     out.push(b(
                         50.0,
                         158.0,
@@ -429,7 +429,7 @@ impl Screen {
                 if self.page == Page::Offline {
                     accounts::add_offline(self.username.clone());
                 } else {
-                    accounts::sign_in_ely(
+                    accounts::sign_in_littleskin(
                         self.username.clone(),
                         std::mem::take(&mut self.password),
                         std::mem::take(&mut self.otp),
@@ -441,8 +441,8 @@ impl Screen {
             }
             108 => self.show_password = !self.show_password,
             72 => {
-                let _ = crate::platform::open_link(if self.page == Page::Ely {
-                    "https://account.ely.by/register"
+                let _ = crate::platform::open_link(if self.page == Page::LittleSkin {
+                    "https://littleskin.cn/auth/register"
                 } else {
                     "https://signup.live.com/"
                 });
@@ -458,7 +458,7 @@ impl Screen {
             75 => self.offset += rows(h),
             76 | 77 => {
                 self.clear();
-                self.page = if id == 76 { Page::Ely } else { Page::Offline };
+                self.page = if id == 76 { Page::LittleSkin } else { Page::Offline };
             }
             79 => {
                 self.clear();
@@ -507,14 +507,14 @@ impl Screen {
     pub(super) fn tab(&mut self, reverse: bool) -> bool {
         let n = match self.page {
             Page::Offline => 1,
-            Page::Ely => 3,
+            Page::LittleSkin => 3,
             _ => return false,
         };
         self.focus = (self.focus + if reverse { n - 1 } else { 1 }) % n;
         true
     }
     pub(super) fn submit(&mut self, h: f32) -> bool {
-        if matches!(self.page, Page::Offline | Page::Ely)
+        if matches!(self.page, Page::Offline | Page::LittleSkin)
             && !self.username.trim().is_empty()
             && (self.page == Page::Offline || !self.password.is_empty())
         {
@@ -579,7 +579,7 @@ mod tests {
     #[test]
     fn reveal_keeps_the_password_secret_for_input_and_resets_on_leaving() {
         let mut screen = Screen {
-            page: Page::Ely,
+            page: Page::LittleSkin,
             focus: 1,
             password: "Secret§9".into(),
             ..Default::default()

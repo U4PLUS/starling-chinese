@@ -1,12 +1,12 @@
 // Copyright (c) 2026 Ludovic Marie and the Horizon contributors.
 // SPDX-License-Identifier: MIT
-// Adapted from Vasysik/horizon-android launcher/src/account/ely.rs.
-//! Ely.by's documented Yggdrasil API. Passwords are used for one request only;
-//! the existing SecretStore holds the access token and launcher client token.
-//! https://docs.ely.by/en/minecraft-auth.html
+//! LittleSkin's Yggdrasil Connect API (an authlib-injector server). Passwords are used for
+//! one request only; the existing SecretStore holds the access token and launcher client
+//! token. https://littleskin.cn/api/yggdrasil
 use super::*;
+use base64::Engine as _;
 
-const AUTH: &str = "https://authserver.ely.by";
+const AUTH: &str = "https://littleskin.cn/api/yggdrasil";
 pub(super) fn agent() -> ureq::Agent {
     ureq::AgentBuilder::new()
         .timeout(Duration::from_secs(20))
@@ -14,18 +14,18 @@ pub(super) fn agent() -> ureq::Agent {
         .user_agent(&format!("starling/{}", env!("CARGO_PKG_VERSION")))
         .build()
 }
-pub(super) const REFUSED: &str = "starling.account.error.ely_refused";
+pub(super) const REFUSED: &str = "starling.account.error.littleskin_refused";
 
 pub(super) fn exchange(endpoint: &str, service: &str, body: Value) -> Result<Value, String> {
     let (status, value) = send(agent().post(endpoint), Some(Body::Json(body)), service)?;
     match status {
         200 => Ok(value),
         401 if value["errorMessage"] == "Account protected with two factor auth." => {
-            Err("starling.account.error.ely_otp_needed".into())
+            Err("starling.account.error.littleskin_otp_needed".into())
         }
         400 | 401 | 403 => Err(REFUSED.into()),
-        429 => Err("starling.account.error.ely_limit".into()),
-        _ => Err("starling.account.error.ely_unavailable".into()),
+        429 => Err("starling.account.error.littleskin_limit".into()),
+        _ => Err("starling.account.error.littleskin_unavailable".into()),
     }
 }
 
@@ -47,17 +47,17 @@ pub(super) fn decode(
         || !(1..=16).contains(&name.len())
         || !name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
     {
-        return Err("starling.account.error.ely_profile".into());
+        return Err("starling.account.error.littleskin_profile".into());
     }
     let token = str_field(value, "accessToken")
         .filter(|t| !t.is_empty())
-        .ok_or("starling.account.error.ely_session")?;
+        .ok_or("starling.account.error.littleskin_session")?;
     if value
         .get("clientToken")
         .and_then(Value::as_str)
         .is_some_and(|t| t != client)
     {
-        return Err("starling.account.error.ely_client".into());
+        return Err("starling.account.error.littleskin_client".into());
     }
     Ok((
         Account {
@@ -80,7 +80,7 @@ pub(super) fn decode(
     ))
 }
 
-/// Direct login supports Ely.by's documented password:OTP convention. Neither
+/// Direct login supports the authlib-injector `password:OTP` convention. Neither
 /// password nor OTP is persisted, included in errors, or passed to the game.
 pub fn authenticate(
     username: &str,
@@ -88,7 +88,7 @@ pub fn authenticate(
     otp: &str,
 ) -> Result<(Account, Secrets), String> {
     let (mut account, secrets) = authenticate_with(AUTH, username, password, otp)?;
-    update_textures_at("https://skinsystem.ely.by", &mut account, "Ely.by skins");
+    update_textures_at(AUTH, &mut account, "LittleSkin");
     Ok((account, secrets))
 }
 pub(super) fn authenticate_with(
@@ -98,13 +98,13 @@ pub(super) fn authenticate_with(
     otp: &str,
 ) -> Result<(Account, Secrets), String> {
     if username.trim().is_empty() || password.is_empty() {
-        return Err("starling.account.error.ely_credentials".into());
+        return Err("starling.account.error.littleskin_credentials".into());
     }
     if !otp.is_empty() && (otp.len() != 6 || !otp.bytes().all(|b| b.is_ascii_digit())) {
-        return Err("starling.account.error.ely_otp_invalid".into());
+        return Err("starling.account.error.littleskin_otp_invalid".into());
     }
     let mut random = [0u8; 16];
-    getrandom::fill(&mut random).map_err(|_| "starling.account.error.ely_random")?;
+    getrandom::fill(&mut random).map_err(|_| "starling.account.error.littleskin_random")?;
     let client: String = random.iter().map(|b| format!("{b:02x}")).collect();
     let password = if otp.is_empty() {
         password.to_owned()
@@ -112,18 +112,18 @@ pub(super) fn authenticate_with(
         format!("{password}:{otp}")
     };
     let value = exchange(
-        &format!("{base}/auth/authenticate"),
-        "Ely.by",
+        &format!("{base}/authserver/authenticate"),
+        "LittleSkin",
         json!({
             "username": username.trim(), "password": password, "clientToken": client, "requestUser": true,
         }),
     )?;
-    decode(&value, &client, Provider::Ely, "", "")
+    decode(&value, &client, Provider::LittleSkin, "", "")
 }
 
 pub(super) fn refresh(account: &Account, secrets: &Secrets) -> Result<(Account, Secrets), String> {
     let (mut account, secrets) = refresh_with(AUTH, account, secrets)?;
-    update_textures_at("https://skinsystem.ely.by", &mut account, "Ely.by skins");
+    update_textures_at(AUTH, &mut account, "LittleSkin");
     Ok((account, secrets))
 }
 pub(super) fn refresh_with(
@@ -132,33 +132,57 @@ pub(super) fn refresh_with(
     secrets: &Secrets,
 ) -> Result<(Account, Secrets), String> {
     let value = exchange(
-        &format!("{base}/auth/refresh"),
-        "Ely.by",
+        &format!("{base}/authserver/refresh"),
+        "LittleSkin",
         json!({
             "accessToken": secrets.minecraft_token, "clientToken": secrets.refresh_token,
             "selectedProfile": {"id": account.uuid, "name": account.name},
         }),
     )?;
-    let (renewed, secrets) = decode(&value, &secrets.refresh_token, Provider::Ely, "", "")?;
+    let (renewed, secrets) = decode(&value, &secrets.refresh_token, Provider::LittleSkin, "", "")?;
     if renewed.uuid != account.uuid {
-        return Err("starling.account.error.ely_changed".into());
+        return Err("starling.account.error.littleskin_changed".into());
     }
     Ok((renewed, secrets))
 }
 
+/// Reads an authlib-injector profile's textures. Unlike Ely.by's flat `skinsystem` JSON, a
+/// Yggdrasil Connect server keeps the textures inside a base64-encoded `textures` property of
+/// the session-server profile (keyed by UUID, not name), so this fetches that profile and
+/// decodes it. A profile with no skin leaves the current skin untouched.
 pub(super) fn update_textures_at(base: &str, account: &mut Account, service: &str) {
-    let url = format!("{base}/textures/{}", account.name);
-    if let Ok((200, value)) = send(agent().get(&url), None, service) {
-        account.skin = str_field(&value["SKIN"], "url").map(|url| {
-            let model = if value["SKIN"]["metadata"]["model"] == "slim" {
-                "slim"
-            } else {
-                "classic"
-            };
-            (url, model.into())
-        });
-        account.cape = str_field(&value["CAPE"], "url");
-    }
+    let url = format!("{base}/sessionserver/session/minecraft/profile/{}", account.uuid);
+    let Ok((200, value)) = send(agent().get(&url), None, service) else {
+        return;
+    };
+    let Some(textures) = profile_textures(&value) else {
+        return;
+    };
+    account.skin = str_field(&textures["SKIN"], "url").map(|url| {
+        let model = if textures["SKIN"]["metadata"]["model"] == "slim" {
+            "slim"
+        } else {
+            "classic"
+        };
+        (url, model.into())
+    });
+    account.cape = str_field(&textures["CAPE"], "url");
+}
+
+/// Decodes the base64 `textures` property out of a session-server profile response.
+fn profile_textures(profile: &Value) -> Option<Value> {
+    let encoded = profile
+        .get("properties")
+        .and_then(Value::as_array)?
+        .iter()
+        .find(|property| property.get("name").and_then(Value::as_str) == Some("textures"))?
+        .get("value")
+        .and_then(Value::as_str)?;
+    let decoded = base64::engine::general_purpose::STANDARD.decode(encoded).ok()?;
+    serde_json::from_slice::<Value>(&decoded)
+        .ok()?
+        .get("textures")
+        .cloned()
 }
 
 pub(super) fn fresh(account: &Account, secrets: Secrets) -> Result<(Account, Secrets), String> {
@@ -172,7 +196,7 @@ pub(super) fn fresh(account: &Account, secrets: Secrets) -> Result<(Account, Sec
 mod tests {
     use super::*;
     #[test]
-    fn authenticate_two_factor_and_refresh_use_only_the_ely_protocol() {
+    fn authenticate_two_factor_and_refresh_use_only_the_littleskin_protocol() {
         use std::io::{BufRead, BufReader, Read, Write};
         let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
         let base = format!("http://{}", listener.local_addr().unwrap());
@@ -186,9 +210,9 @@ mod tests {
                 let mut line = String::new();
                 reader.read_line(&mut line).unwrap();
                 assert!(line.starts_with(if index < 2 {
-                    "POST /auth/authenticate "
+                    "POST /authserver/authenticate "
                 } else {
-                    "POST /auth/refresh "
+                    "POST /authserver/refresh "
                 }));
                 let mut length = 0;
                 loop {
@@ -238,7 +262,7 @@ mod tests {
         assert!(
             authenticate_with(&base, "Player", "secret", "")
                 .unwrap_err()
-                .contains("ely_otp_needed")
+                .contains("littleskin_otp_needed")
         );
         let (account, secrets) = authenticate_with(&base, "Player", "secret", "123456").unwrap();
         let (_, renewed) = refresh_with(&base, &account, &secrets).unwrap();
@@ -253,17 +277,17 @@ mod tests {
     fn provider_identity_is_distinct_and_secrets_are_redacted() {
         let value = json!({"accessToken":"private-access", "clientToken":"private-client",
             "selectedProfile":{"id":"0123456789abcdef0123456789abcdef", "name":"Player"}});
-        let (ely, secrets) = decode(&value, "private-client", Provider::Ely, "", "").unwrap();
-        let mut microsoft = ely.clone();
+        let (littleskin, secrets) = decode(&value, "private-client", Provider::LittleSkin, "", "").unwrap();
+        let mut microsoft = littleskin.clone();
         microsoft.provider = Provider::Microsoft;
-        assert_ne!(ely.key(), microsoft.key());
+        assert_ne!(littleskin.key(), microsoft.key());
         assert!(!format!("{secrets:?}").contains("private"));
-        assert!(!serde_json::to_string(&ely).unwrap().contains("private"));
-        assert!(decode(&value, "another-client", Provider::Ely, "", "").is_err());
+        assert!(!serde_json::to_string(&littleskin).unwrap().contains("private"));
+        assert!(decode(&value, "another-client", Provider::LittleSkin, "", "").is_err());
         assert!(
             decode(
                 &json!({"accessToken":"x","selectedProfile":{"id":"../bad","name":"Player"}}),
-                "c", Provider::Ely, "", ""
+                "c", Provider::LittleSkin, "", ""
             )
             .is_err()
         );

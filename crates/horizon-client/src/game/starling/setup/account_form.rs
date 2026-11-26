@@ -4,7 +4,7 @@ use horizon_client::ui::EditBox;
 use winit::keyboard::KeyCode;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum Kind {
-    Ely,
+    LittleSkin,
     Offline,
 }
 pub(super) struct Form {
@@ -35,10 +35,10 @@ impl Form {
         }
     }
     fn count(&self) -> usize {
-        if self.kind == Kind::Ely { 3 } else { 1 }
+        if self.kind == Kind::LittleSkin { 3 } else { 1 }
     }
     fn secret(&self) -> bool {
-        self.kind == Kind::Ely && self.focus.is_some_and(|i| i > 0)
+        self.kind == Kind::LittleSkin && self.focus.is_some_and(|i| i > 0)
     }
     fn sync(&self, show: bool) {
         #[cfg(target_os = "android")]
@@ -169,13 +169,13 @@ impl Form {
     }
     pub fn submit(&mut self) -> bool {
         if self.fields[0].value.trim().is_empty()
-            || (self.kind == Kind::Ely && self.fields[1].value.is_empty())
+            || (self.kind == Kind::LittleSkin && self.fields[1].value.is_empty())
         {
             return false;
         }
         self.hide();
-        if self.kind == Kind::Ely {
-            accounts::sign_in_ely(
+        if self.kind == Kind::LittleSkin {
+            accounts::sign_in_littleskin(
                 self.fields[0].value.clone(),
                 std::mem::take(&mut self.fields[1].value),
                 std::mem::take(&mut self.fields[2].value),
@@ -193,7 +193,7 @@ impl Form {
     ) {
         let w = ui.w;
         let cw = (w - 32.).min(520.);
-        let ch = if self.kind == Kind::Ely { 352. } else { 206. };
+        let ch = if self.kind == Kind::LittleSkin { 352. } else { 206. };
         let x = (w - cw) / 2.;
         let y = ((available_h - ch) / 2.).max(8.);
         let inner = cw - 32.;
@@ -205,8 +205,8 @@ impl Form {
             x + 16.,
             y + 14.,
             color::text(),
-            &tr(if self.kind == Kind::Ely {
-                "setup.ely_title"
+            &tr(if self.kind == Kind::LittleSkin {
+                "setup.littleskin_title"
             } else {
                 "setup.offline_title"
             }),
@@ -232,7 +232,7 @@ impl Form {
                 ui.border(rect[0], rect[1], rect[2], rect[3], 6., color::ACCENT);
             }
             let raw = &self.fields[i].value;
-            let shown = if self.kind == Kind::Ely && (i == 2 || (i == 1 && !self.show_password)) {
+            let shown = if self.kind == Kind::LittleSkin && (i == 2 || (i == 1 && !self.show_password)) {
                 "*".repeat(raw.chars().count())
             } else {
                 raw.clone()
@@ -263,7 +263,7 @@ impl Form {
             }
         }
         self.rects.set(rects);
-        let specs = if self.kind == Kind::Ely {
+        let specs = if self.kind == Kind::LittleSkin {
             vec![
                 (tr("log_in"), Action::SubmitForm),
                 (tr("back"), Action::AccountBack),
@@ -335,7 +335,7 @@ mod tests {
     use super::*;
     #[test]
     fn stale_password_ime_updates_cannot_edit_the_next_field() {
-        let mut f = Form::new(Kind::Ely);
+        let mut f = Form::new(Kind::LittleSkin);
         f.focus = Some(1);
         f.generation = 4;
         f.replace("Secret§9", 8, 8, 4);
@@ -349,7 +349,7 @@ mod tests {
     }
     #[test]
     fn empty_form_does_not_start_authentication() {
-        let mut f = Form::new(Kind::Ely);
+        let mut f = Form::new(Kind::LittleSkin);
         assert!(!f.submit());
         f.fields[0].value = "name".into();
         assert!(!f.submit());

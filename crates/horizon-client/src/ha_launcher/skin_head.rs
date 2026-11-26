@@ -3,9 +3,9 @@
 //! The launcher draws the account head before the game has loaded a skin, so
 //! the name goes to Mojang's public profile APIs on a background thread and the
 //! decoded faces are kept for the session. A name with no Mojang profile, or one
-//! wearing the default skin, takes its skin on Ely.by, where Starling's offline
-//! and Ely.by players keep theirs and the game shows it (Skin Customization's
-//! Ely.by Skins); with neither, the drawn Steve head.
+//! wearing the default skin, takes its skin on LittleSkin, where Starling's offline
+//! and LittleSkin players keep theirs and the game shows it (Skin Customization's
+//! LittleSkin Skins); with neither, the drawn Steve head.
 
 use std::collections::HashMap;
 use std::io::Read;
@@ -85,7 +85,7 @@ fn agent() -> ureq::Agent {
 
 fn fetch(name: &str) -> Option<HeadSkin> {
     let agent = agent();
-    let url = mojang_skin_url(&agent, name).or_else(|| ely_skin_url(&agent, name))?;
+    let url = mojang_skin_url(&agent, name).or_else(|| littleskin_skin_url(&agent, name))?;
     let mut png = Vec::new();
     agent
         .get(&url)
@@ -98,28 +98,41 @@ fn fetch(name: &str) -> Option<HeadSkin> {
     from_rgba(w, h, &rgba)
 }
 
-/// `name`'s skin on Ely.by (`GET skinsystem.ely.by/textures/{name}`, 204 for a name without
-/// one), on https, from Ely.by's own hosts only.
-fn ely_skin_url(agent: &ureq::Agent, name: &str) -> Option<String> {
+/// `name`'s skin on LittleSkin (`POST /api/yggdrasil/profiles/minecraft` with
+/// `[{"name": ...}]`, whose base64-encoded `textures` property carries the skin;
+/// an empty answer for a name without a profile), on https, from LittleSkin's
+/// own hosts only.
+fn littleskin_skin_url(agent: &ureq::Agent, name: &str) -> Option<String> {
     let answer: serde_json::Value = serde_json::from_str(
         &agent
-            .get(&format!("https://skinsystem.ely.by/textures/{name}"))
-            .call()
+            .post("https://littleskin.cn/api/yggdrasil/profiles/minecraft")
+            .set("Content-Type", "application/json; charset=utf-8")
+            .send_string(&serde_json::json!([{"name": name}]).to_string())
             .ok()?
             .into_string()
             .ok()?,
     )
     .ok()?;
-    ely_url(answer.get("SKIN")?.get("url")?.as_str()?)
+    let profile = answer.as_array()?.first()?;
+    let encoded = profile
+        .get("properties")?
+        .as_array()?
+        .iter()
+        .find(|p| p.get("name").and_then(|n| n.as_str()) == Some("textures"))?
+        .get("value")?
+        .as_str()?;
+    let payload: serde_json::Value =
+        serde_json::from_slice(&crate::ha_launcher::client::skins::base64_decode(encoded)?).ok()?;
+    littleskin_url(payload.get("textures")?.get("SKIN")?.get("url")?.as_str()?)
 }
 
-/// An Ely.by skin URL on https, or None for another host.
-fn ely_url(url: &str) -> Option<String> {
+/// A LittleSkin skin URL on https, or None for another host.
+fn littleskin_url(url: &str) -> Option<String> {
     let rest = url
         .strip_prefix("https://")
         .or_else(|| url.strip_prefix("http://"))?;
     let host = rest.split('/').next()?;
-    matches!(host, "ely.by" | "skinsystem.ely.by").then(|| format!("https://{rest}"))
+    matches!(host, "littleskin.cn").then(|| format!("https://{rest}"))
 }
 
 /// The skin URL of `name`'s Mojang profile; None without a profile or with the default skin.
@@ -281,21 +294,21 @@ impl AvatarHead for crate::ha_launcher::client::ui_theme::Ui<'_> {
 
 #[cfg(test)]
 mod tests {
-    use super::ely_url;
+    use super::littleskin_url;
 
     #[test]
-    fn ely_skins_come_on_https_from_ely_hosts_only() {
+    fn littleskin_skins_come_on_https_from_littleskin_hosts_only() {
         assert_eq!(
-            ely_url("http://ely.by/storage/skins/a.png").as_deref(),
-            Some("https://ely.by/storage/skins/a.png")
+            littleskin_url("http://littleskin.cn/storage/skins/a.png").as_deref(),
+            Some("https://littleskin.cn/storage/skins/a.png")
         );
         assert_eq!(
-            ely_url("https://skinsystem.ely.by/x.png").as_deref(),
-            Some("https://skinsystem.ely.by/x.png")
+            littleskin_url("https://littleskin.cn/x.png").as_deref(),
+            Some("https://littleskin.cn/x.png")
         );
-        assert_eq!(ely_url("https://example.com/ely.by/a.png"), None);
-        assert_eq!(ely_url("https://ely.by.example.com/a.png"), None);
-        assert_eq!(ely_url("https://token@ely.by/a.png"), None);
-        assert_eq!(ely_url("ftp://ely.by/a.png"), None);
+        assert_eq!(littleskin_url("https://example.com/littleskin.cn/a.png"), None);
+        assert_eq!(littleskin_url("https://littleskin.cn.example.com/a.png"), None);
+        assert_eq!(littleskin_url("https://token@littleskin.cn/a.png"), None);
+        assert_eq!(littleskin_url("ftp://littleskin.cn/a.png"), None);
     }
 }

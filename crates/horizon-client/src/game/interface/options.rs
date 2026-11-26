@@ -726,13 +726,13 @@ impl Game<'_> {
                     self.open_game_folder(&Self::wardrobe_root().join("images"));
                 }
                 SkinAction::PickFile => self.pick_skin_file(),
-                SkinAction::ElyBy(on) => self.keep_elyby(on),
+                SkinAction::LittleSkin(on) => self.keep_littleskin(on),
                 SkinAction::Upload(choice) => {
                     if let Err(error) = self.upload_own_skin(choice) {
                         self.ui.options.skin_warning(error);
                     }
                 }
-                SkinAction::ElySite => self.open_ely_skins(),
+                SkinAction::LittleSkinSite => self.open_littleskin_skins(),
             }
         }
         Ok(())

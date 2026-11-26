@@ -97,8 +97,8 @@ impl SignIn {
         crate::accounts::sign_in();
         Self
     }
-    pub fn start_ely(username: String, password: String, otp: String) -> Self {
-        crate::accounts::sign_in_ely(username, password, otp);
+    pub fn start_littleskin(username: String, password: String, otp: String) -> Self {
+        crate::accounts::sign_in_littleskin(username, password, otp);
         Self
     }
 
