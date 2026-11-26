@@ -159,7 +159,7 @@ pub fn fetch(account: &Account, secrets: &Secrets, root: &Path) -> Result<Cache,
                 .ok_or("The skin server answered no textures.")?;
             let decoded = base64::engine::general_purpose::STANDARD
                 .decode(encoded)
-                .map_err(|_| "Invalid cloud profile response.".into())?;
+                .map_err(|_| "Invalid cloud profile response.")?;
             let value: Value =
                 serde_json::from_slice(&decoded).map_err(|_| "Invalid cloud profile response.")?;
             let textures = &value["textures"];
